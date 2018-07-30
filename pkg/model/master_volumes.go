@@ -97,6 +97,8 @@ func (b *MasterVolumeBuilder) Build(c *fi.ModelBuilderContext) error {
 				b.addDOVolume(c, name, volumeSize, zone, etcd, m, allMembers)
 			case kops.CloudProviderGCE:
 				b.addGCEVolume(c, name, volumeSize, zone, etcd, m, allMembers)
+			case kops.CloudProviderAzure:
+				b.addAzureVolume(c, name, volumeSize, zone, etcd, m, allMembers)
 			case kops.CloudProviderVSphere:
 				b.addVSphereVolume(c, name, volumeSize, zone, etcd, m, allMembers)
 			case kops.CloudProviderBareMetal:
@@ -229,6 +231,10 @@ func (b *MasterVolumeBuilder) addGCEVolume(c *fi.ModelBuilderContext, name strin
 	}
 
 	c.AddTask(t)
+}
+
+func (b *MasterVolumeBuilder) addAzureVolume(c *fi.ModelBuilderContext, name string, volumeSize int32, zone string, etcd *kops.EtcdClusterSpec, m *kops.EtcdMemberSpec, allMembers []string) {
+	fmt.Print("addAzureVolume not implemented")
 }
 
 func (b *MasterVolumeBuilder) addVSphereVolume(c *fi.ModelBuilderContext, name string, volumeSize int32, zone string, etcd *kops.EtcdClusterSpec, m *kops.EtcdMemberSpec, allMembers []string) {

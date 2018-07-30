@@ -93,7 +93,13 @@ func ValidateCluster(c *kops.Cluster, strict bool) *field.Error {
 			return field.Invalid(fieldSpec.Child("NetworkCIDR"), c.Spec.NetworkCIDR, "NetworkCIDR should not be set on GCE")
 		}
 		requiresSubnetCIDR = false
-
+	case kops.CloudProviderAzure:
+		// TODO: BP Verify this
+		requiresNetworkCIDR = false
+		if c.Spec.NetworkCIDR != "" {
+			return field.Invalid(fieldSpec.Child("NetworkCIDR"), c.Spec.NetworkCIDR, "NetworkCIDR should not be set on Azure")
+		}
+		requiresSubnetCIDR = false
 	case kops.CloudProviderDO:
 		requiresSubnets = false
 		requiresSubnetCIDR = false
@@ -317,6 +323,8 @@ func ValidateCluster(c *kops.Cluster, strict bool) *field.Error {
 			k8sCloudProvider = "aws"
 		case kops.CloudProviderGCE:
 			k8sCloudProvider = "gce"
+		case kops.CloudProviderAzure:
+			k8sCloudProvider = "azure"
 		case kops.CloudProviderDO:
 			k8sCloudProvider = "external"
 		case kops.CloudProviderVSphere:

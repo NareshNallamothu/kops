@@ -153,6 +153,8 @@ func (b *KubeAPIServerOptionsBuilder) BuildOptions(o interface{}) error {
 		c.CloudProvider = "aws"
 	case kops.CloudProviderGCE:
 		c.CloudProvider = "gce"
+	case kops.CloudProviderAzure:
+		c.CloudProvider = "azure"
 	case kops.CloudProviderDO:
 		c.CloudProvider = "external"
 	case kops.CloudProviderVSphere:

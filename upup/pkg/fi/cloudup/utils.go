@@ -27,6 +27,8 @@ import (
 	"k8s.io/kops/upup/pkg/fi"
 	"k8s.io/kops/upup/pkg/fi/cloudup/aliup"
 	"k8s.io/kops/upup/pkg/fi/cloudup/awsup"
+
+	"k8s.io/kops/upup/pkg/fi/cloudup/azure"
 	"k8s.io/kops/upup/pkg/fi/cloudup/baremetal"
 	"k8s.io/kops/upup/pkg/fi/cloudup/do"
 	"k8s.io/kops/upup/pkg/fi/cloudup/gce"
@@ -95,6 +97,15 @@ func BuildCloud(cluster *kops.Cluster) (fi.Cloud, error) {
 				return nil, err
 			}
 			cloud = awsCloud
+		}
+	case kops.CloudProviderAzure:
+		{
+			// TODO: BP What else do we add here?
+			azureCloud, err := azure.NewAzureCloud()
+			if err != nil {
+				return nil, err
+			}
+			cloud = azureCloud
 		}
 	case kops.CloudProviderVSphere:
 		{

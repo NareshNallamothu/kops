@@ -46,6 +46,10 @@ func buildCloudupTags(cluster *api.Cluster) (sets.String, error) {
 		{
 			tags.Insert("_aws")
 		}
+	case api.CloudProviderAzure:
+		{
+			tags.Insert("_azure")
+		}
 	case api.CloudProviderDO:
 		{
 			tags.Insert("_do")
