@@ -104,6 +104,9 @@ func (b *KubeControllerManagerOptionsBuilder) BuildOptions(o interface{}) error 
 		kcm.CloudProvider = "gce"
 		kcm.ClusterName = gce.SafeClusterName(b.Context.ClusterName)
 
+	case kops.CloudProviderAzure:
+		kcm.CloudProvider = "azure"
+
 	case kops.CloudProviderDO:
 		kcm.CloudProvider = "external"
 

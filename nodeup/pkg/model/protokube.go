@@ -344,6 +344,9 @@ func (t *ProtokubeBuilder) ProtokubeFlags(k8sVersion semver.Version) (*Protokube
 				f.ClusterID = fi.String(t.Cluster.Name)
 			case kops.CloudProviderGCE:
 				f.DNSProvider = fi.String("google-clouddns")
+			case kops.CloudProviderAzure:
+				// TODO: BP Is this right?
+				f.DNSProvider = fi.String("azure-dns")
 			case kops.CloudProviderVSphere:
 				f.DNSProvider = fi.String("coredns")
 				f.ClusterID = fi.String(t.Cluster.ObjectMeta.Name)

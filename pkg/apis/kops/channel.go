@@ -255,6 +255,7 @@ const CloudProviderDO CloudProviderID = "digitalocean"
 const CloudProviderVSphere CloudProviderID = "vsphere"
 const CloudProviderOpenstack CloudProviderID = "openstack"
 const CloudProviderALI CloudProviderID = "alicloud"
+const CloudProviderAzure CloudProviderID = "azure"
 
 // FindImage returns the image for the cloudprovider, or nil if none found
 func (c *Channel) FindImage(provider CloudProviderID, kubernetesVersion semver.Version) *ChannelImageSpec {

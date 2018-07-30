@@ -185,6 +185,12 @@ func (b *KubeletOptionsBuilder) BuildOptions(o interface{}) error {
 		clusterSpec.CloudConfig.NodeTags = fi.String(GCETagForRole(b.Context.ClusterName, kops.InstanceGroupRoleNode))
 	}
 
+	if cloudProvider == kops.CloudProviderAzure {
+		clusterSpec.Kubelet.CloudProvider = "azure"
+
+		// TODO: BP What else do we add here?
+	}
+
 	if cloudProvider == kops.CloudProviderVSphere {
 		clusterSpec.Kubelet.CloudProvider = "vsphere"
 		clusterSpec.Kubelet.HairpinMode = "promiscuous-bridge"

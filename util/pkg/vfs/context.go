@@ -22,10 +22,13 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
 
+	azStorage "github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2018-02-01/storage"
+	"github.com/Azure/go-autorest/autorest/azure/auth"
 	"github.com/denverdino/aliyungo/oss"
 	"github.com/golang/glog"
 	"github.com/gophercloud/gophercloud"
@@ -49,6 +52,8 @@ type VFSContext struct {
 	swiftClient *gophercloud.ServiceClient
 	// ossClient is the Aliyun Open Source Storage client
 	ossClient *oss.Client
+	// azsClient is the Azure storage client
+	azsClient *azStorage.AccountsClient
 }
 
 var Context = VFSContext{
@@ -137,6 +142,10 @@ func (c *VFSContext) BuildVfsPath(p string) (Path, error) {
 
 	if strings.HasPrefix(p, "oss://") {
 		return c.buildOSSPath(p)
+	}
+
+	if strings.HasPrefix(p, "azs://") {
+		return c.buildAZSPath(p)
 	}
 
 	return nil, fmt.Errorf("unknown / unhandled path type: %q", p)
@@ -405,4 +414,63 @@ func (c *VFSContext) buildOSSPath(p string) (*OSSPath, error) {
 	}
 
 	return NewOSSPath(c.ossClient, bucket, u.Path)
+}
+
+func (c *VFSContext) buildAZSPath(p string) (*AZSPath, error) {
+	u, err := url.Parse(p)
+
+	// TODO: BP Make this a const
+	if err != nil || u.Scheme != "azs" {
+		return nil, fmt.Errorf("invalid Azure storage path: %q", p)
+	}
+
+	resourceGroup := u.Host
+
+	// The path will contain the storage account name plus the key.
+	// We need to split them by two groupings: (storage account)(key)
+	reg := regexp.MustCompile(`(\/?[^\/\s]+\/?)(.*)`)
+	substrings := reg.FindAllStringSubmatch(u.Path, -1)[0]
+
+	// The first string [0] will be the entire match.
+	// regex groups start at [1]
+	storageAccount := strings.Trim(substrings[1], "/")
+	key := strings.Trim(substrings[2], "/")
+
+	if resourceGroup == "" || storageAccount == "" {
+		return nil, fmt.Errorf("invalid Azure storage path: %q", p)
+	}
+
+	azsClient, err := c.getAZSClient()
+	if err != nil {
+		return nil, err
+	}
+
+	azsPath := NewAZSPath(azsClient, resourceGroup, storageAccount, key)
+	return azsPath, nil
+}
+
+// getAZSClient returns the Azure storage.AccountsClient client, caching it for future calls
+func (c *VFSContext) getAZSClient() (*azStorage.AccountsClient, error) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	if c.azsClient != nil {
+		return c.azsClient, nil
+	}
+
+	// TODO: BP Make this a const
+	subscriptionID := os.Getenv("AZURE_SUBSCRIPTION_ID")
+	if subscriptionID == "" {
+		return nil, fmt.Errorf("AZURE_SUBSCRIPTION_ID env variable not found")
+	}
+
+	storageAccountsClient := azStorage.NewAccountsClient(subscriptionID)
+	authorizer, err := auth.NewAuthorizerFromEnvironment()
+	if err != nil {
+		return nil, fmt.Errorf(err.Error())
+	}
+
+	storageAccountsClient.Authorizer = authorizer
+	c.azsClient = &storageAccountsClient
+	return c.azsClient, nil
 }

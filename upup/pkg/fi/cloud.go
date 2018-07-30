@@ -277,6 +277,48 @@ var zonesToCloud = map[string]kops.CloudProviderID{
 	"cn-hongkong-a": kops.CloudProviderALI,
 	"cn-hongkong-b": kops.CloudProviderALI,
 	"cn-hongkong-c": kops.CloudProviderALI,
+
+	// Azure
+	"eastasia":      kops.CloudProviderAzure,
+	"southeastasia": kops.CloudProviderAzure,
+
+	"centralus":      kops.CloudProviderAzure,
+	"eastus":         kops.CloudProviderAzure,
+	"eastus2":        kops.CloudProviderAzure,
+	"westus":         kops.CloudProviderAzure,
+	"northcentralus": kops.CloudProviderAzure,
+	"southcentralus": kops.CloudProviderAzure,
+	"westcentralus":  kops.CloudProviderAzure,
+	"westus2":        kops.CloudProviderAzure,
+
+	"northeurope": kops.CloudProviderAzure,
+	"westeurope":  kops.CloudProviderAzure,
+
+	"japanwest": kops.CloudProviderAzure,
+	"japaneast": kops.CloudProviderAzure,
+
+	"brazilsouth": kops.CloudProviderAzure,
+
+	"australiaeast":      kops.CloudProviderAzure,
+	"australiasoutheast": kops.CloudProviderAzure,
+	"australiacentral":   kops.CloudProviderAzure,
+	"australiacentral2":  kops.CloudProviderAzure,
+
+	"southindia":   kops.CloudProviderAzure,
+	"centralindia": kops.CloudProviderAzure,
+	"westindia":    kops.CloudProviderAzure,
+
+	"canadacentral": kops.CloudProviderAzure,
+	"canadaeast":    kops.CloudProviderAzure,
+
+	"uksouth": kops.CloudProviderAzure,
+	"ukwest":  kops.CloudProviderAzure,
+
+	"koreacentral": kops.CloudProviderAzure,
+	"koreasouth":   kops.CloudProviderAzure,
+
+	"francecentral": kops.CloudProviderAzure,
+	"francesouth":   kops.CloudProviderAzure,
 }
 
 // GuessCloudForZone tries to infer the cloudprovider from the zone name

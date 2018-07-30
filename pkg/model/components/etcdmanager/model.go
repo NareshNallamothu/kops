@@ -249,6 +249,7 @@ func (b *EtcdManagerBuilder) buildPod(etcdCluster *kops.EtcdClusterSpec) (*v1.Po
 			}
 			config.VolumeNameTag = gce.GceLabelNameEtcdClusterPrefix + etcdCluster.Name
 
+		// TODO: BP Add Azure
 		default:
 			return nil, fmt.Errorf("CloudProvider %q not supported with etcd-manager", b.Cluster.Spec.CloudProvider)
 		}

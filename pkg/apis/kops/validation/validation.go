@@ -46,6 +46,7 @@ func newValidateCluster(cluster *kops.Cluster) field.ErrorList {
 		allErrs = append(allErrs, awsValidateCluster(cluster)...)
 	case kops.CloudProviderGCE:
 		allErrs = append(allErrs, gceValidateCluster(cluster)...)
+		// TODO: BP Add Azure validation
 	}
 
 	return allErrs
