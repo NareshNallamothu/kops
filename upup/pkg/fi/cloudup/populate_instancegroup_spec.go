@@ -26,6 +26,7 @@ import (
 	"k8s.io/kops/pkg/apis/kops/validation"
 	"k8s.io/kops/upup/pkg/fi"
 	"k8s.io/kops/upup/pkg/fi/cloudup/awsup"
+	"k8s.io/kops/upup/pkg/fi/cloudup/azure"
 	"k8s.io/kops/upup/pkg/fi/utils"
 )
 
@@ -179,6 +180,18 @@ func defaultMachineType(cluster *kops.Cluster, ig *kops.InstanceGroup) (string, 
 		case kops.InstanceGroupRoleBastion:
 			return defaultBastionMachineTypeGCE, nil
 		}
+
+	case kops.CloudProviderAzure:
+		cloud, err := BuildCloud(cluster)
+		if err != nil {
+			return "", fmt.Errorf("error building cloud for Azure cluster: %v", err)
+		}
+
+		instanceType, err := cloud.(azure.AzureCloud).DefaultInstanceType(cluster, ig)
+		if err != nil {
+			return "", fmt.Errorf("error finding default machine type: %v", err)
+		}
+		return instanceType, nil
 
 	case kops.CloudProviderDO:
 		switch ig.Spec.Role {

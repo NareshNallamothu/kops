@@ -267,8 +267,7 @@ func (p *AZSPath) ReadDir() ([]Path, error) {
 }
 
 func (p *AZSPath) ReadTree() ([]Path, error) {
-	// TODO: BP Implement this
-	return nil, fmt.Errorf("Not implemented")
+	return p.ReadDir()
 }
 
 func (p *AZSPath) Base() string {
@@ -374,7 +373,6 @@ func CreateContainer(ctx context.Context, accountKey, resourceGroupName, account
 func GetStorageError(err error) (blob.StorageError, bool) {
 	if azureError, ok := err.(blob.StorageError); ok {
 		return azureError, true
-
 	}
 
 	return nil, false

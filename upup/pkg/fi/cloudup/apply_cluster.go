@@ -54,6 +54,7 @@ import (
 	"k8s.io/kops/upup/pkg/fi/cloudup/aliup"
 	"k8s.io/kops/upup/pkg/fi/cloudup/awstasks"
 	"k8s.io/kops/upup/pkg/fi/cloudup/awsup"
+	"k8s.io/kops/upup/pkg/fi/cloudup/azure"
 	"k8s.io/kops/upup/pkg/fi/cloudup/baremetal"
 	"k8s.io/kops/upup/pkg/fi/cloudup/cloudformation"
 	"k8s.io/kops/upup/pkg/fi/cloudup/do"
@@ -80,6 +81,8 @@ var (
 	AlphaAllowDO = featureflag.New("AlphaAllowDO", featureflag.Bool(false))
 	// AlphaAllowGCE is a feature flag that gates GCE support while it is alpha
 	AlphaAllowGCE = featureflag.New("AlphaAllowGCE", featureflag.Bool(false))
+	// AlphaAllowAzure is a feature flag that gates Azure support while it is alpha
+	AlphaAllowAzure = featureflag.New("AlphaAllowAzure", featureflag.Bool(false))
 	// AlphaAllowVsphere is a feature flag that gates vsphere support while it is alpha
 	AlphaAllowVsphere = featureflag.New("AlphaAllowVsphere", featureflag.Bool(false))
 	// AlphaAllowALI is a feature flag that gates aliyun support while it is alpha
@@ -346,6 +349,22 @@ func (c *ApplyClusterCmd) Run() error {
 			})
 		}
 
+	case kops.CloudProviderAzure:
+		{
+			//TODO: BP Implement this
+
+			azureCloud := cloud.(azure.AzureCloud)
+			region = azureCloud.Region()
+
+			if !AlphaAllowAzure.Enabled() {
+				return fmt.Errorf("Azure support is currently alpha, and is feature-gated.  export KOPS_FEATURE_FLAGS=AlphaAllowAzure")
+			}
+
+			// l.AddTypes(map[string]interface{}}
+			// );
+			modelContext.SSHPublicKeys = sshPublicKeys
+		}
+
 	case kops.CloudProviderDO:
 		{
 			if !AlphaAllowDO.Enabled() {
@@ -359,6 +378,7 @@ func (c *ApplyClusterCmd) Run() error {
 				"droplet": &dotasks.Droplet{},
 			})
 		}
+
 	case kops.CloudProviderAWS:
 		{
 			awsCloud := cloud.(awsup.AWSCloud)
@@ -607,6 +627,13 @@ func (c *ApplyClusterCmd) Run() error {
 					&gcemodel.StorageAclBuilder{GCEModelContext: gceModelContext, Cloud: cloud.(gce.GCECloud), Lifecycle: &storageAclLifecycle},
 				)
 
+			case kops.CloudProviderAzure:
+				// No special settings (yet!)
+				glog.Infof("No special settings For Azure (yet!)")
+				// azureModelContext := &azuremodel.AzureModelContext{
+				// 	KopsModelContext: modelContext,
+				// }
+
 			case kops.CloudProviderALI:
 				aliModelContext := &alimodel.ALIModelContext{
 					KopsModelContext: modelContext,
@@ -673,6 +700,10 @@ func (c *ApplyClusterCmd) Run() error {
 
 			SecurityLifecycle: &securityLifecycle,
 		})
+	case kops.CloudProviderAzure:
+		// TODO: BP Implement
+		glog.Info("Autoscaling Group for Azure not implemented yet")
+
 	case kops.CloudProviderDO:
 		doModelContext := &domodel.DOModelContext{
 			KopsModelContext: modelContext,
@@ -753,6 +784,8 @@ func (c *ApplyClusterCmd) Run() error {
 			target = gce.NewGCEAPITarget(cloud.(gce.GCECloud))
 		case kops.CloudProviderAWS:
 			target = awsup.NewAWSAPITarget(cloud.(awsup.AWSCloud))
+		case kops.CloudProviderAzure:
+			target = azure.NewAzureAPITarget(cloud.(azure.AzureCloud))
 		case kops.CloudProviderDO:
 			target = do.NewDOAPITarget(cloud.(*digitalocean.Cloud))
 		case kops.CloudProviderVSphere:

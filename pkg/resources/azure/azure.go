@@ -9,5 +9,5 @@ import (
 
 // TODO: BP Implement this
 func ListResourcesAzure(azureCloud azure.AzureCloud, clusterName string, region string) (map[string]*resources.Resource, error) {
-	return nil, fmt.Errorf("ListResourcesAzure Not implemented")
+	return nil, fmt.Errorf("ListResourcesAzure: Not implemented")
 }

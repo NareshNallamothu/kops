@@ -100,8 +100,21 @@ func BuildCloud(cluster *kops.Cluster) (fi.Cloud, error) {
 		}
 	case kops.CloudProviderAzure:
 		{
+			// In Azure you deploy resources in regions not zones.
+			// "Zones" are controlled via Azure Availability Sets
+			region := cluster.Spec.Subnets[0].Zone
+
+			// TODO: BP Validate region before continue?
+
+			// TODO: BP Move to azure_utils.go
+			// if len(cluster.Spec.Subnets) > 1 {
+			// 	return nil, fmt.Errorf("Clusters cannot span multiple regions")
+			// }
+
+			tags := map[string]string{azure.TagClusterName: cluster.ObjectMeta.Name}
+
 			// TODO: BP What else do we add here?
-			azureCloud, err := azure.NewAzureCloud()
+			azureCloud, err := azure.NewAzureCloud(region, tags)
 			if err != nil {
 				return nil, err
 			}

@@ -37,17 +37,26 @@ type AzureCloud interface {
 	// TODO: BP Incomplete
 	Compute() *compute.VirtualMachinesClient
 	Storage() *storage.AccountsClient
+
+	Region() string
+
+	// DefaultInstanceType determines a suitable instance type for the specified instance group
+	DefaultInstanceType(cluster *kops.Cluster, ig *kops.InstanceGroup) (string, error)
 }
 
 type azureCloudImplementation struct {
 	compute *compute.VirtualMachinesClient
 	storage *storage.AccountsClient
+
+	region string
 }
 
 var _ fi.Cloud = &azureCloudImplementation{}
 
-func NewAzureCloud() (AzureCloud, error) {
-	c := &azureCloudImplementation{}
+func NewAzureCloud(region string, tags map[string]string) (AzureCloud, error) {
+	c := &azureCloudImplementation{
+		region: region,
+	}
 
 	// TODO: BP Make this a const
 	subscriptionID := os.Getenv("AZURE_SUBSCRIPTION_ID")
@@ -84,6 +93,28 @@ func (c *azureCloudImplementation) Storage() *storage.AccountsClient {
 
 func (c *azureCloudImplementation) ProviderID() kops.CloudProviderID {
 	return kops.CloudProviderAzure
+}
+
+// Region returns private struct element region.
+func (c *azureCloudImplementation) Region() string {
+	return c.region
+}
+
+// DefaultInstanceType determines an instance type for the specified cluster & instance group
+func (c *azureCloudImplementation) DefaultInstanceType(cluster *kops.Cluster, ig *kops.InstanceGroup) (string, error) {
+	switch ig.Spec.Role {
+	case kops.InstanceGroupRoleMaster:
+		return "Standard_D2_v2", nil
+
+	case kops.InstanceGroupRoleNode:
+		return "Standard_D2_v2", nil
+
+	case kops.InstanceGroupRoleBastion:
+		return "Standard_B1s", nil
+
+	default:
+		return "", fmt.Errorf("unhandled role %q", ig.Spec.Role)
+	}
 }
 
 func (c *azureCloudImplementation) DNS() (dnsprovider.Interface, error) {

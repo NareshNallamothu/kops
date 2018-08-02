@@ -207,7 +207,21 @@ var (
           --node-count 3
           --project my-gce-project \
           --image "ubuntu-os-cloud/ubuntu-1604-xenial-v20170202" \
-          --yes
+		  --yes
+		  
+	# Create cluster in Azure.
+	# This is an alpha feature.
+		export KOPS_STATE_STORE="azs://storage-account-resource-group/storage-account-name"
+		export ZONES=${MASTER_ZONES:-"eastus"}
+		export KOPS_FEATURE_FLAGS=AlphaAllowAzure
+
+		kops create cluster kubernetes-k8s-azure.example.com
+		--zones $ZONES \
+		--master-zones $ZONES \
+		--node-count 3
+		--resource-group my-resource-group \
+		--yes
+
 	# Create manifest for a cluster in AWS
 	kops create cluster --name=kubernetes-cluster.example.com \
 	--state=s3://kops-state-1234 --zones=eu-west-1a \
