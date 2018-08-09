@@ -17,9 +17,7 @@ limitations under the License.
 package model
 
 import (
-	"encoding/json"
 	"fmt"
-	"reflect"
 	"strings"
 	"text/template"
 
@@ -168,10 +166,9 @@ func (b *IAMModelBuilder) buildIAMTasks(igRole kops.InstanceGroupRole, iamName s
 		{
 			additionalPolicy := ""
 			if b.Cluster.Spec.AdditionalPolicies != nil {
-				roleAsString := reflect.ValueOf(igRole).String()
 				additionalPolicies := *(b.Cluster.Spec.AdditionalPolicies)
 
-				additionalPolicy = additionalPolicies[strings.ToLower(roleAsString)]
+				additionalPolicy = additionalPolicies[strings.ToLower(string(igRole))]
 			}
 
 			additionalPolicyName := "additional." + iamName
@@ -188,8 +185,11 @@ func (b *IAMModelBuilder) buildIAMTasks(igRole kops.InstanceGroupRole, iamName s
 					Version: iam.PolicyDefaultVersion,
 				}
 
-				statements := make([]*iam.Statement, 0)
-				json.Unmarshal([]byte(additionalPolicy), &statements)
+				statements, err := iam.ParseStatements(additionalPolicy)
+				if err != nil {
+					return fmt.Errorf("additionalPolicy %q is invalid: %v", strings.ToLower(string(igRole)), err)
+				}
+
 				p.Statement = append(p.Statement, statements...)
 
 				policy, err := p.AsJSON()

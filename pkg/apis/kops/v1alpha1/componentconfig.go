@@ -168,6 +168,14 @@ type KubeletConfigSpec struct {
 	ExperimentalAllowedUnsafeSysctls []string `json:"experimental_allowed_unsafe_sysctls,omitempty" flag:"experimental-allowed-unsafe-sysctls"`
 	// StreamingConnectionIdleTimeout is the maximum time a streaming connection can be idle before the connection is automatically closed
 	StreamingConnectionIdleTimeout *metav1.Duration `json:"streamingConnectionIdleTimeout,omitempty" flag:"streaming-connection-idle-timeout"`
+	// DockerDisableSharedPID uses a shared PID namespace for containers in a pod.
+	DockerDisableSharedPID *bool `json:"dockerDisableSharedPID,omitempty" flag:"docker-disable-shared-pid"`
+	// RootDir is the directory path for managing kubelet files (volume mounts,etc)
+	RootDir string `json:"rootDir,omitempty" flag:"root-dir"`
+	// AuthenticationTokenWebhook uses the TokenReview API to determine authentication for bearer tokens.
+	AuthenticationTokenWebhook *bool `json:"authenticationTokenWebhook,omitempty" flag:"authentication-token-webhook"`
+	// AuthenticationTokenWebhook sets the duration to cache responses from the webhook token authenticator. Default is 2m. (default 2m0s)
+	AuthenticationTokenWebhookCacheTTL *metav1.Duration `json:"authenticationTokenWebhookCacheTtl,omitempty" flag:"authentication-token-webhook-cache-ttl"`
 }
 
 // KubeProxyConfig defines the configuration for a proxy
@@ -198,6 +206,10 @@ type KubeProxyConfig struct {
 	ProxyMode string `json:"proxyMode,omitempty" flag:"proxy-mode"`
 	// FeatureGates is a series of key pairs used to switch on features for the proxy
 	FeatureGates map[string]string `json:"featureGates,omitempty" flag:"feature-gates"`
+	// Maximum number of NAT connections to track per CPU core (default: 131072)
+	ConntrackMaxPerCore *int32 `json:"conntrackMaxPerCore,omitempty" flag:"conntrack-max-per-core"`
+	// Minimum number of conntrack entries to allocate, regardless of conntrack-max-per-core
+	ConntrackMin *int32 `json:"conntrackMin,omitempty" flag:"conntrack-min"`
 }
 
 // KubeAPIServerConfig defines the configuration for the kube api
@@ -308,8 +320,6 @@ type KubeAPIServerConfig struct {
 	AuditLogMaxSize *int32 `json:"auditLogMaxSize,omitempty" flag:"audit-log-maxsize"`
 	// AuditPolicyFile is the full path to a advanced audit configuration file a.g. /srv/kubernetes/audit.conf
 	AuditPolicyFile string `json:"auditPolicyFile,omitempty" flag:"audit-policy-file"`
-	// AuthenticationTokenWebhook enables bearer token authentication on kubelet.
-	AuthenticationTokenWebhook *bool `json:"authenticationTokenWebhook,omitempty" flag:"authentication-token-webhook"`
 	// File with webhook configuration for token authentication in kubeconfig format. The API server will query the remote service to determine authentication for bearer tokens.
 	AuthenticationTokenWebhookConfigFile *string `json:"authenticationTokenWebhookConfigFile,omitempty" flag:"authentication-token-webhook-config-file"`
 	// The duration to cache responses from the webhook token authenticator. Default is 2m. (default 2m0s)
@@ -338,6 +348,10 @@ type KubeAPIServerConfig struct {
 
 	// EtcdQuorumRead configures the etcd-quorum-read flag, which forces consistent reads from etcd
 	EtcdQuorumRead *bool `json:"etcdQuorumRead,omitempty" flag:"etcd-quorum-read"`
+
+	// MinRequestTimeout configures the minimum number of seconds a handler must keep a request open before timing it out.
+	// Currently only honored by the watch request handler
+	MinRequestTimeout *int32 `json:"minRequestTimeout,omitempty" flag:"min-request-timeout"`
 }
 
 // KubeControllerManagerConfig is the configuration for the controller

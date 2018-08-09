@@ -53,7 +53,7 @@ unexport KOPS_BASE_URL KOPS_CLUSTER_NAME KOPS_RUN_OBSOLETE_VERSION KOPS_STATE_ST
 unexport SKIP_REGION_CHECK S3_ACCESS_KEY_ID S3_ENDPOINT S3_REGION S3_SECRET_ACCESS_KEY VSPHERE_USERNAME VSPHERE_PASSWORD
 
 # Keep in sync with upup/models/cloudup/resources/addons/dns-controller/
-DNS_CONTROLLER_TAG=1.10.0-alpha.1
+DNS_CONTROLLER_TAG=1.10.0-beta.1
 
 # Keep in sync with logic in get_workspace_status
 # TODO: just invoke tools/get_workspace_status.sh?
@@ -539,6 +539,11 @@ verify-bazel:
 ci: govet verify-gofmt verify-boilerplate verify-bazel verify-misspelling nodeup examples test | verify-gendocs verify-packages verify-apimachinery
 	echo "Done!"
 
+.PHONY: pr
+pr:
+	@echo "Test passed!"
+	@echo "Feel free to open your pr at https://github.com/kubernetes/kops/compare"
+
 # --------------------------------------------------
 # channel tool
 
@@ -637,37 +642,40 @@ bazel-build-cli:
 
 .PHONY: bazel-crossbuild-kops
 bazel-crossbuild-kops:
-	bazel build --features=pure --experimental_platforms=@io_bazel_rules_go//go/toolchain:darwin_amd64 //cmd/kops/...
-	bazel build --features=pure --experimental_platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 //cmd/kops/...
-	bazel build --features=pure --experimental_platforms=@io_bazel_rules_go//go/toolchain:windows_amd64 //cmd/kops/...
+	bazel build --features=pure --platforms=@io_bazel_rules_go//go/toolchain:darwin_amd64 --platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 --platforms=@io_bazel_rules_go//go/toolchain:windows_amd64 //cmd/kops/...
 
 .PHONY: bazel-crossbuild-nodeup
 bazel-crossbuild-nodeup:
-	bazel build --features=pure --experimental_platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 //cmd/nodeup/...
+	bazel build --features=pure --platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 //cmd/nodeup/...
 
 .PHONY: bazel-crossbuild-protokube
 bazel-crossbuild-protokube:
-	bazel build --features=pure --experimental_platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 //protokube/...
+	bazel build --features=pure --platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 //protokube/...
 
 .PHONY: bazel-crossbuild-dns-controller
 bazel-crossbuild-dns-controller:
-	bazel build --features=pure --experimental_platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 //dns-controller/...
+	bazel build --features=pure --platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 //dns-controller/...
 
 .PHONY: bazel-crossbuild-dns-controller-image
 bazel-crossbuild-dns-controller-image:
-	bazel build --experimental_platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 //images:dns-controller.tar
+	bazel build --platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 //images:dns-controller.tar
 
 .PHONY: bazel-crossbuild-protokube-image
 bazel-crossbuild-protokube-image:
-	bazel build --experimental_platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 //images:protokube.tar
+	bazel build --platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 //images:protokube.tar
 
 .PHONY: bazel-crossbuild-kube-discovery-image
 bazel-crossbuild-kube-discovery-image:
-	bazel build --experimental_platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 //images:kube-discovery.tar
+	bazel build --platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 //images:kube-discovery.tar
+
+.PHONY: bazel-crossbuild-node-authorizer-image
+bazel-crossbuild-node-authorizer-image:
+	bazel build --platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 //images:node-authorizer.tar
 
 .PHONY: bazel-push
 # Will always push a linux-based build up to the server
 bazel-push: bazel-crossbuild-nodeup
+	ssh ${TARGET} touch /tmp/nodeup
 	ssh ${TARGET} chmod +w /tmp/nodeup
 	scp -C bazel-bin/cmd/nodeup/linux_amd64_pure_stripped/nodeup  ${TARGET}:/tmp/
 
@@ -679,6 +687,7 @@ bazel-push-gce-run: bazel-push
 # -t is for CentOS http://unix.stackexchange.com/questions/122616/why-do-i-need-a-tty-to-run-sudo-if-i-can-sudo-without-a-password
 .PHONY: bazel-push-aws-run
 bazel-push-aws-run: bazel-push
+	ssh ${TARGET} chmod +x /tmp/nodeup
 	ssh -t ${TARGET} sudo SKIP_PACKAGE_UPDATE=1 /tmp/nodeup --conf=/var/cache/kubernetes-install/kube_env.yaml --v=8
 
 .PHONY: bazel-gazelle
@@ -703,10 +712,16 @@ push-kube-discovery:
 	docker tag bazel/kube-discovery/images:kube-discovery ${DOCKER_REGISTRY}/kube-discovery:${DOCKER_TAG}
 	docker push ${DOCKER_REGISTRY}/kube-discovery:${DOCKER_TAG}
 
+.PHONY: push-node-authorizer
+push-node-authorizer:
+	bazel run //node-authorizer/images:node-authorizer
+	docker tag bazel/node-authorizer/images:node-authorizer ${DOCKER_REGISTRY}/node-authorizer:${DOCKER_TAG}
+	docker push ${DOCKER_REGISTRY}/node-authorizer:${DOCKER_TAG}
+
 .PHONY: bazel-protokube-export
 bazel-protokube-export:
 	mkdir -p ${BAZELIMAGES}
-	bazel build --action_env=PROTOKUBE_TAG=${PROTOKUBE_TAG} --experimental_platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 //images:protokube.tar
+	bazel build --action_env=PROTOKUBE_TAG=${PROTOKUBE_TAG} --platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 //images:protokube.tar
 	cp bazel-bin/images/protokube.tar ${BAZELIMAGES}/protokube.tar
 	gzip --force --fast ${BAZELIMAGES}/protokube.tar
 	(${SHASUMCMD} ${BAZELIMAGES}/protokube.tar.gz | cut -d' ' -f1) > ${BAZELIMAGES}/protokube.tar.gz.sha1

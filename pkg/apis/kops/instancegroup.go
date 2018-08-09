@@ -60,6 +60,7 @@ const (
 	InstanceGroupRoleBastion InstanceGroupRole = "Bastion"
 )
 
+// AllInstanceGroupRoles is a slice of all valid InstanceGroupRole values
 var AllInstanceGroupRoles = []InstanceGroupRole{
 	InstanceGroupRoleNode,
 	InstanceGroupRoleMaster,
@@ -116,6 +117,8 @@ type InstanceGroupSpec struct {
 	AdditionalUserData []UserData `json:"additionalUserData,omitempty"`
 	// SuspendProcesses disables the listed Scaling Policies
 	SuspendProcesses []string `json:"suspendProcesses,omitempty"`
+	// ExternalLoadBalancers define loadbalancers that should be attached to the instancegroup
+	ExternalLoadBalancers []LoadBalancer `json:"externalLoadBalancers,omitempty"`
 	// DetailedInstanceMonitoring defines if detailed-monitoring is enabled (AWS only)
 	DetailedInstanceMonitoring *bool `json:"detailedInstanceMonitoring,omitempty"`
 	// IAMProfileSpec defines the identity of the cloud group iam profile (AWS only).
@@ -205,4 +208,12 @@ func (g *InstanceGroup) AddInstanceGroupNodeLabel() {
 	} else {
 		g.Spec.NodeLabels[NodeLabelInstanceGroup] = g.Name
 	}
+}
+
+// LoadBalancers defines a load balancer
+type LoadBalancer struct {
+	// LoadBalancerName to associate with this instance group (AWS ELB)
+	LoadBalancerName *string `json:"loadBalancerName,omitempty"`
+	// TargetGroupARN to associate with this instance group (AWS ALB/NLB)
+	TargetGroupARN *string `json:"targetGroupArn,omitempty"`
 }
