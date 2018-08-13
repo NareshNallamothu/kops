@@ -16,6 +16,30 @@
   revision = "3b1ae45394a234c385be014e9a488f2bb6eef821"
 
 [[projects]]
+  name = "github.com/Azure/azure-pipeline-go"
+  packages = ["pipeline"]
+  revision = "7571e8eb0876932ab505918ff7ed5107773e5ee2"
+  version = "0.1.7"
+
+[[projects]]
+  name = "github.com/Azure/azure-sdk-for-go"
+  packages = [
+    "services/compute/mgmt/2018-06-01/compute",
+    "services/network/mgmt/2018-05-01/network",
+    "services/resources/mgmt/2018-05-01/resources",
+    "services/storage/mgmt/2018-02-01/storage",
+    "version"
+  ]
+  revision = "4e8cbbfb1aeab140cd0fa97fd16b64ee18c3ca6a"
+  version = "v19.1.0"
+
+[[projects]]
+  name = "github.com/Azure/azure-storage-blob-go"
+  packages = ["2016-05-31/azblob"]
+  revision = "66ba96e49ebbdc3cd26970c6c675c906d304b5e2"
+  version = "0.1.4"
+
+[[projects]]
   name = "github.com/Azure/go-ansiterm"
   packages = [
     ".",
@@ -29,7 +53,10 @@
     "autorest",
     "autorest/adal",
     "autorest/azure",
-    "autorest/date"
+    "autorest/azure/auth",
+    "autorest/date",
+    "autorest/to",
+    "autorest/validation"
   ]
   revision = "d4e6b95c12a08b4de2d48b45d5b4d594e5d32fab"
 
@@ -247,6 +274,12 @@
     "context"
   ]
   revision = "34840385860db94c88d044571153b6a200ca40b2"
+
+[[projects]]
+  name = "github.com/dimchansky/utfbom"
+  packages = ["."]
+  revision = "5448fe645cb1964ba70ac8f9f2ffe975e61a536c"
+  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/docker/distribution"
@@ -1529,7 +1562,7 @@
     "pkg/util"
   ]
   revision = "7ead8f38b01cf8653249f5af80ce7b2c8aba12e2"
-  version = "kubernetes-1.10.0"
+  version = "kubernetes-1.10.0-beta.1"
 
 [[projects]]
   name = "k8s.io/gengo"
@@ -1788,6 +1821,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c083db22a03ca0fe3ccc11361c91a444e674aa1ec6fb0aba6447b4b4982c0355"
+  inputs-digest = "502daead171924dba6e1201b71b9e911b6d7acf2aee86d809c274f9531a94f92"
   solver-name = "gps-cdcl"
   solver-version = 1
