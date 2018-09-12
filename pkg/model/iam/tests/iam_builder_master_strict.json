@@ -21,6 +21,7 @@
         "ec2:CreateSecurityGroup",
         "ec2:CreateTags",
         "ec2:CreateVolume",
+        "ec2:DescribeVolumesModifications",
         "ec2:ModifyInstanceAttribute",
         "ec2:ModifyVolume"
       ],
@@ -109,6 +110,7 @@
         "elasticloadbalancing:CreateTargetGroup",
         "elasticloadbalancing:DeleteListener",
         "elasticloadbalancing:DeleteTargetGroup",
+        "elasticloadbalancing:DeregisterTargets",
         "elasticloadbalancing:DescribeListeners",
         "elasticloadbalancing:DescribeLoadBalancerPolicies",
         "elasticloadbalancing:DescribeTargetGroups",

@@ -112,7 +112,7 @@ func findLoadBalancerByLoadBalancerName(cloud awsup.AWSCloud, loadBalancerName s
 			return true
 		}
 
-		glog.Warningf("Got ELB with unexpected name: %q", lb.LoadBalancerName)
+		glog.Warningf("Got ELB with unexpected name: %q", aws.StringValue(lb.LoadBalancerName))
 		return false
 	})
 
@@ -325,7 +325,7 @@ func (e *LoadBalancer) Find(c *fi.Context) (*LoadBalancer, error) {
 	if err != nil {
 		return nil, err
 	}
-	glog.V(4).Info("ELB attributes: %+v", lbAttributes)
+	glog.V(4).Infof("ELB attributes: %+v", lbAttributes)
 
 	if lbAttributes != nil {
 		actual.AccessLog = &LoadBalancerAccessLog{}
@@ -379,7 +379,7 @@ func (e *LoadBalancer) Find(c *fi.Context) (*LoadBalancer, error) {
 	// 1. We don't want to force a rename of the ELB, because that is a destructive operation
 	// 2. We were creating ELBs with insufficiently qualified names previously
 	if fi.StringValue(e.LoadBalancerName) != fi.StringValue(actual.LoadBalancerName) {
-		glog.V(2).Infof("Reusing existing load balancer with name: %q", actual.LoadBalancerName)
+		glog.V(2).Infof("Reusing existing load balancer with name: %q", aws.StringValue(actual.LoadBalancerName))
 		e.LoadBalancerName = actual.LoadBalancerName
 	}
 
@@ -548,6 +548,19 @@ func (_ *LoadBalancer) RenderAWS(t *awsup.AWSAPITarget, a, e, changes *LoadBalan
 				if _, err := t.Cloud.ELB().AttachLoadBalancerToSubnets(request); err != nil {
 					return fmt.Errorf("Error attaching Load Balancer to new subnets: %v", err)
 				}
+			}
+		}
+
+		if changes.SecurityGroups != nil {
+			request := &elb.ApplySecurityGroupsToLoadBalancerInput{}
+			request.LoadBalancerName = aws.String(loadBalancerName)
+			for _, sg := range e.SecurityGroups {
+				request.SecurityGroups = append(request.SecurityGroups, sg.ID)
+			}
+
+			glog.V(2).Infof("Updating Load Balancer Security Groups")
+			if _, err := t.Cloud.ELB().ApplySecurityGroupsToLoadBalancer(request); err != nil {
+				return fmt.Errorf("Error updating security groups on Load Balancer: %v", err)
 			}
 		}
 

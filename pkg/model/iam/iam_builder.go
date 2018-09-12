@@ -631,11 +631,12 @@ func addMasterEC2Policies(p *Policy, resource stringorslice.StringOrSlice, legac
 			&Statement{
 				Effect: StatementEffectAllow,
 				Action: stringorslice.Slice([]string{
-					"ec2:CreateSecurityGroup",     // aws.go
-					"ec2:CreateTags",              // aws.go, tag.go
-					"ec2:CreateVolume",            // aws.go
-					"ec2:ModifyInstanceAttribute", // aws.go
-					"ec2:ModifyVolume",            // aws.go
+					"ec2:CreateSecurityGroup",          // aws.go
+					"ec2:CreateTags",                   // aws.go, tag.go
+					"ec2:CreateVolume",                 // aws.go
+					"ec2:DescribeVolumesModifications", // aws.go
+					"ec2:ModifyInstanceAttribute",      // aws.go
+					"ec2:ModifyVolume",                 // aws.go
 				}),
 				Resource: resource,
 			},
@@ -703,6 +704,7 @@ func addMasterELBPolicies(p *Policy, resource stringorslice.StringOrSlice, legac
 				"elasticloadbalancing:CreateTargetGroup",                 // aws_loadbalancer.go
 				"elasticloadbalancing:DeleteListener",                    // aws_loadbalancer.go
 				"elasticloadbalancing:DeleteTargetGroup",                 // aws_loadbalancer.go
+				"elasticloadbalancing:DeregisterTargets",                 // aws_loadbalancer.go
 				"elasticloadbalancing:DescribeListeners",                 // aws_loadbalancer.go
 				"elasticloadbalancing:DescribeLoadBalancerPolicies",      // aws_loadbalancer.go
 				"elasticloadbalancing:DescribeTargetGroups",              // aws_loadbalancer.go

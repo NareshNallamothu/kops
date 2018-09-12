@@ -25,10 +25,12 @@ import (
 	"k8s.io/kops/pkg/resources/azure"
 	"k8s.io/kops/pkg/resources/digitalocean"
 	"k8s.io/kops/pkg/resources/gce"
+	"k8s.io/kops/pkg/resources/openstack"
 	"k8s.io/kops/upup/pkg/fi"
 	"k8s.io/kops/upup/pkg/fi/cloudup/awsup"
 	cloudazure "k8s.io/kops/upup/pkg/fi/cloudup/azure"
 	cloudgce "k8s.io/kops/upup/pkg/fi/cloudup/gce"
+	cloudopenstack "k8s.io/kops/upup/pkg/fi/cloudup/openstack"
 	"k8s.io/kops/upup/pkg/fi/cloudup/vsphere"
 )
 
@@ -37,12 +39,14 @@ func ListResources(cloud fi.Cloud, clusterName string, region string) (map[strin
 	switch cloud.ProviderID() {
 	case kops.CloudProviderAWS:
 		return aws.ListResourcesAWS(cloud.(awsup.AWSCloud), clusterName)
+	case kops.CloudProviderAzure:
+		return azure.ListResourcesAzure(cloud.(cloudazure.AzureCloud), clusterName, region)
 	case kops.CloudProviderDO:
 		return digitalocean.ListResources(cloud.(*digitalocean.Cloud), clusterName)
 	case kops.CloudProviderGCE:
 		return gce.ListResourcesGCE(cloud.(cloudgce.GCECloud), clusterName, region)
-	case kops.CloudProviderAzure:
-		return azure.ListResourcesAzure(cloud.(cloudazure.AzureCloud), clusterName, region)
+	case kops.CloudProviderOpenstack:
+		return openstack.ListResources(cloud.(cloudopenstack.OpenstackCloud), clusterName)
 	case kops.CloudProviderVSphere:
 		return resources.ListResourcesVSphere(cloud.(*vsphere.VSphereCloud), clusterName)
 	default:

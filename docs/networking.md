@@ -62,7 +62,7 @@ different CNI providers but support configuring Kubernetes to run CNI providers.
 ## Specifying network option for cluster creation
 
 You are able to specify your networking type via command line switch or in your yaml file.
-The `--networking` option accepts the three different values defined above: `kubenet`, `cni`,
+The `--networking` option accepts the four different values defined above: `kubenet`, `cni`,
 `classic`, and `external`. If `--networking` is left undefined `kubenet` is installed.
 
 ### Weave Example for CNI
@@ -252,7 +252,7 @@ For support with Flannel you can submit an issue on Github:
 
 ### Kube-router example for CNI, IPVS based service proxy and Network Policy enforcer
 
-[Kube-router](https://github.com/cloudnativelabs/kube-router) is project that provides one cohesive soltion that provides CNI networking for pods, an IPVS based network service proxy and iptables based network policy enforcement.
+[Kube-router](https://github.com/cloudnativelabs/kube-router) is project that provides one cohesive solution that provides CNI networking for pods, an IPVS based network service proxy and iptables based network policy enforcement.
 
 #### Installing kube-router on a new Cluster
 
