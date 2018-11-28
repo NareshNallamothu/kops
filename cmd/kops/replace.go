@@ -32,7 +32,7 @@ import (
 	"k8s.io/kops/util/pkg/vfs"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	"k8s.io/kubernetes/pkg/kubectl/util/i18n"
 )
 
@@ -165,9 +165,8 @@ func RunReplace(f *util.Factory, cmd *cobra.Command, out io.Writer, c *replaceOp
 				if err != nil {
 					if errors.IsNotFound(err) {
 						return fmt.Errorf("cluster %q not found", clusterName)
-					} else {
-						return fmt.Errorf("error fetching cluster %q: %v", clusterName, err)
 					}
+					return fmt.Errorf("error fetching cluster %q: %v", clusterName, err)
 				}
 				// check if the instancegroup exists already
 				igName := v.ObjectMeta.Name

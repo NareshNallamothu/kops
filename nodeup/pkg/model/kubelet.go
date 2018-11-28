@@ -37,6 +37,7 @@ import (
 	"k8s.io/kops/pkg/pki"
 	"k8s.io/kops/pkg/systemd"
 	"k8s.io/kops/upup/pkg/fi"
+	"k8s.io/kops/upup/pkg/fi/cloudup/awsup"
 	"k8s.io/kops/upup/pkg/fi/nodeup/nodetasks"
 	"k8s.io/kops/util/pkg/reflectutils"
 )
@@ -88,7 +89,15 @@ func (b *KubeletBuilder) Build(c *fi.ModelBuilderContext) error {
 			Mode:     s("0755"),
 		})
 	}
-
+	{
+		if kubeletConfig.PodManifestPath != "" {
+			t, err := b.buildManifestDirectory(kubeletConfig)
+			if err != nil {
+				return err
+			}
+			c.AddTask(t)
+		}
+	}
 	{
 		// @check if bootstrap tokens are enabled and create the appropreiate certificates
 		if b.UseBootstrapTokens() {
@@ -147,6 +156,16 @@ func (b *KubeletBuilder) kubeletPath() string {
 		kubeletCommand = "/home/kubernetes/bin/kubelet"
 	}
 	return kubeletCommand
+}
+
+// buildManifestDirectory creates the directory where kubelet expects static manifests to reside
+func (b *KubeletBuilder) buildManifestDirectory(kubeletConfig *kops.KubeletConfigSpec) (*nodetasks.File, error) {
+	directory := &nodetasks.File{
+		Path: kubeletConfig.PodManifestPath,
+		Type: nodetasks.FileType_Directory,
+		Mode: s("0755"),
+	}
+	return directory, nil
 }
 
 // buildSystemdEnvironmentFile renders the environment file for the kubelet
@@ -223,7 +242,7 @@ func (b *KubeletBuilder) buildSystemdService() *nodetasks.Service {
 	manifest.Set("Unit", "After", "docker.service")
 
 	if b.Distribution == distros.DistributionCoreOS {
-		// We add /opt/kubernetes/bin for our utilities (socat)
+		// We add /opt/kubernetes/bin for our utilities (socat, conntrack)
 		manifest.Set("Service", "Environment", "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/kubernetes/bin")
 	}
 	manifest.Set("Service", "EnvironmentFile", "/etc/sysconfig/kubelet")
@@ -276,25 +295,27 @@ func (b *KubeletBuilder) buildKubeletConfig() (*kops.KubeletConfigSpec, error) {
 
 func (b *KubeletBuilder) addStaticUtils(c *fi.ModelBuilderContext) error {
 	if b.Distribution == distros.DistributionCoreOS {
-		// CoreOS does not ship with socat.  Install our own (statically linked) version
+		// CoreOS does not ship with socat or conntrack.  Install our own (statically linked) version
 		// TODO: Extract to common function?
-		assetName := "socat"
-		assetPath := ""
-		asset, err := b.Assets.Find(assetName, assetPath)
-		if err != nil {
-			return fmt.Errorf("error trying to locate asset %q: %v", assetName, err)
-		}
-		if asset == nil {
-			return fmt.Errorf("unable to locate asset %q", assetName)
-		}
+		for _, binary := range []string{"socat", "conntrack"} {
+			assetName := binary
+			assetPath := ""
+			asset, err := b.Assets.Find(assetName, assetPath)
+			if err != nil {
+				return fmt.Errorf("error trying to locate asset %q: %v", assetName, err)
+			}
+			if asset == nil {
+				return fmt.Errorf("unable to locate asset %q", assetName)
+			}
 
-		t := &nodetasks.File{
-			Path:     "/opt/kubernetes/bin/socat",
-			Contents: asset,
-			Type:     nodetasks.FileType_File,
-			Mode:     s("0755"),
+			t := &nodetasks.File{
+				Path:     "/opt/kubernetes/bin/" + binary,
+				Contents: asset,
+				Type:     nodetasks.FileType_File,
+				Mode:     s("0755"),
+			}
+			c.AddTask(t)
 		}
-		c.AddTask(t)
 	}
 
 	return nil
@@ -320,7 +341,7 @@ func (b *KubeletBuilder) addContainerizedMounter(c *fi.ModelBuilderContext) erro
 
 	// So what we do here is we download a tarred container image, expand it to containerizedMounterHome, then
 	// set up bind mounts so that the script is executable (most of containeros is noexec),
-	// and set up some bind mounts of proc and dev so that  mounting can take place inside that container
+	// and set up some bind mounts of proc and dev so that mounting can take place inside that container
 	// - it isn't a full docker container.
 
 	{
@@ -437,6 +458,42 @@ func (b *KubeletBuilder) buildKubeletConfigSpec() (*kops.KubeletConfigSpec, erro
 
 	if b.IsMaster {
 		c.BootstrapKubeconfig = ""
+	}
+
+	if b.Cluster.Spec.Networking != nil && b.Cluster.Spec.Networking.AmazonVPC != nil {
+		instanceType, err := awsup.GetMachineTypeInfo(b.InstanceGroup.Spec.MachineType)
+		if err != nil {
+			return c, err
+		}
+
+		// Default maximum pods per node defined by KubeletConfiguration, but
+		// respect any value the user sets explicitly.
+		maxPods := int32(110)
+		if c.MaxPods != nil {
+			maxPods = *c.MaxPods
+		}
+
+		// AWS VPC CNI plugin-specific maximum pod calculation based on:
+		// https://github.com/aws/amazon-vpc-cni-k8s/blob/f52ad45/README.md
+		//
+		// Treat the calculated value as a hard max, since networking with the CNI
+		// plugin won't work correctly once we exceed that maximum.
+		enis := instanceType.InstanceENIs
+		ips := instanceType.InstanceIPsPerENI
+		if enis > 0 && ips > 0 {
+			instanceMaxPods := enis*(ips-1) + 2
+			if int32(instanceMaxPods) < maxPods {
+				maxPods = int32(instanceMaxPods)
+			}
+		}
+
+		// Write back values that could have changed
+		c.MaxPods = &maxPods
+		if b.InstanceGroup.Spec.Kubelet != nil {
+			if b.InstanceGroup.Spec.Kubelet.MaxPods == nil {
+				b.InstanceGroup.Spec.Kubelet.MaxPods = &maxPods
+			}
+		}
 	}
 
 	if b.InstanceGroup.Spec.Kubelet != nil {

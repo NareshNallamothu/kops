@@ -31,6 +31,7 @@ type NetworkingSpec struct {
 	Romana     *RomanaNetworkingSpec     `json:"romana,omitempty"`
 	AmazonVPC  *AmazonVPCNetworkingSpec  `json:"amazonvpc,omitempty"`
 	Cilium     *CiliumNetworkingSpec     `json:"cilium,omitempty"`
+	LyftVPC    *LyftVPCNetworkingSpec    `json:"lyftvpc,omitempty"`
 }
 
 // ClassicNetworkingSpec is the specification of classic networking mode, integrated into kubernetes
@@ -59,8 +60,9 @@ type KopeioNetworkingSpec struct {
 
 // WeaveNetworkingSpec declares that we want Weave networking
 type WeaveNetworkingSpec struct {
-	MTU       *int32 `json:"mtu,omitempty"`
-	ConnLimit *int32 `json:"connLimit,omitempty"`
+	MTU         *int32 `json:"mtu,omitempty"`
+	ConnLimit   *int32 `json:"connLimit,omitempty"`
+	NoMasqLocal *int32 `json:"noMasqLocal,omitempty"`
 }
 
 // FlannelNetworkingSpec declares that we want Flannel networking
@@ -86,6 +88,8 @@ type CalicoNetworkingSpec struct {
 	PrometheusGoMetricsEnabled bool `json:"prometheusGoMetricsEnabled,omitempty"`
 	// PrometheusProcessMetricsEnabled enables Prometheus process metrics collection
 	PrometheusProcessMetricsEnabled bool `json:"prometheusProcessMetricsEnabled,omitempty"`
+	// MajorVersion is the version of Calico to use
+	MajorVersion string `json:"majorVersion,omitempty"`
 }
 
 // CanalNetworkingSpec declares that we want Canal networking
@@ -184,4 +188,9 @@ type CiliumNetworkingSpec struct {
 	StateDir                 string            `json:"stateDir,omitempty"`
 	TracePayloadLen          int               `json:"tracePayloadlen,omitempty"`
 	Tunnel                   string            `json:"tunnel,omitempty"`
+}
+
+// LyftIpVlanNetworkingSpec declares that we want to use the cni-ipvlan-vpc-k8s CNI networking
+type LyftVPCNetworkingSpec struct {
+	SubnetTags map[string]string `json:"subnetTags,omitempty"`
 }

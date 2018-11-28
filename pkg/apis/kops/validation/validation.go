@@ -21,11 +21,14 @@ import (
 	"net"
 	"strings"
 
+	"github.com/blang/semver"
+
 	"k8s.io/apimachinery/pkg/api/validation"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kops/pkg/apis/kops"
+	"k8s.io/kops/pkg/model/components"
 	"k8s.io/kops/pkg/model/iam"
 )
 
@@ -95,12 +98,22 @@ func validateClusterSpec(spec *kops.ClusterSpec, fieldPath *field.Path) field.Er
 
 	if spec.Networking != nil {
 		allErrs = append(allErrs, validateNetworking(spec.Networking, fieldPath.Child("networking"))...)
+		if spec.Networking.Calico != nil {
+			allErrs = append(allErrs, validateNetworkingCalico(spec.Networking.Calico, spec.EtcdClusters[0], fieldPath.Child("networking").Child("Calico"))...)
+		}
 	}
 
 	// IAM additionalPolicies
 	if spec.AdditionalPolicies != nil {
 		for k, v := range *spec.AdditionalPolicies {
 			allErrs = append(allErrs, validateAdditionalPolicy(k, v, fieldPath.Child("additionalPolicies"))...)
+		}
+	}
+
+	// EtcdClusters
+	{
+		for i, etcdCluster := range spec.EtcdClusters {
+			allErrs = append(allErrs, validateEtcdClusterSpec(etcdCluster, fieldPath.Child("etcdClusters").Index(i))...)
 		}
 	}
 
@@ -193,11 +206,32 @@ func validateFileAssetSpec(v *kops.FileAssetSpec, fieldPath *field.Path) field.E
 func validateHookSpec(v *kops.HookSpec, fieldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	if !v.Disabled && v.ExecContainer == nil && v.Manifest == "" {
+	// if this unit is disabled, short-circuit and do not validate
+	if v.Disabled {
+		return allErrs
+	}
+
+	if v.ExecContainer == nil && v.Manifest == "" {
 		allErrs = append(allErrs, field.Required(fieldPath, "you must set either manifest or execContainer for a hook"))
 	}
 
-	if !v.Disabled && v.ExecContainer != nil {
+	if v.ExecContainer != nil && v.UseRawManifest {
+		allErrs = append(allErrs, field.Forbidden(fieldPath, "execContainer may not be used with useRawManifest (use manifest instead)"))
+	}
+
+	if v.Manifest == "" && v.UseRawManifest {
+		allErrs = append(allErrs, field.Required(fieldPath, "you must set manifest when useRawManifest is true"))
+	}
+
+	if v.Before != nil && v.UseRawManifest {
+		allErrs = append(allErrs, field.Forbidden(fieldPath, "before may not be used with useRawManifest"))
+	}
+
+	if v.Requires != nil && v.UseRawManifest {
+		allErrs = append(allErrs, field.Forbidden(fieldPath, "requires may not be used with useRawManifest"))
+	}
+
+	if v.ExecContainer != nil {
 		allErrs = append(allErrs, validateExecContainerAction(v.ExecContainer, fieldPath.Child("ExecContainer"))...)
 	}
 
@@ -294,4 +328,64 @@ func validateAdditionalPolicy(role string, policy string, fldPath *field.Path) f
 	}
 
 	return errs
+}
+
+func validateEtcdClusterSpec(spec *kops.EtcdClusterSpec, fieldPath *field.Path) field.ErrorList {
+	errs := field.ErrorList{}
+
+	switch spec.Provider {
+	case kops.EtcdProviderTypeManager:
+		// ok
+	case kops.EtcdProviderTypeLegacy:
+		// ok
+
+	case "":
+		// blank means that the user accepts the recommendation
+
+	default:
+		errs = append(errs, field.Invalid(fieldPath.Child("provider"), spec.Provider, "Provider must be Manager or Legacy"))
+	}
+
+	return errs
+}
+
+func ValidateEtcdVersionForCalicoV3(e *kops.EtcdClusterSpec, majorVersion string, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	version := e.Version
+	if e.Version == "" {
+		version = components.DefaultEtcd2Version
+	}
+	sem, err := semver.Parse(strings.TrimPrefix(version, "v"))
+	if err != nil {
+		allErrs = append(allErrs, field.InternalError(fldPath.Child("MajorVersion"), fmt.Errorf("Failed to parse Etcd version to check compatibility: %s", err)))
+	}
+
+	if sem.Major != 3 {
+		if e.Version == "" {
+			allErrs = append(allErrs,
+				field.Invalid(fldPath.Child("MajorVersion"), majorVersion,
+					fmt.Sprintf("Unable to use v3 when ETCD version for %s cluster is default(%s)",
+						e.Name, components.DefaultEtcd2Version)))
+		} else {
+			allErrs = append(allErrs,
+				field.Invalid(fldPath.Child("MajorVersion"), majorVersion,
+					fmt.Sprintf("Unable to use v3 when ETCD version for %s cluster is %s", e.Name, e.Version)))
+		}
+	}
+	return allErrs
+}
+
+func validateNetworkingCalico(v *kops.CalicoNetworkingSpec, e *kops.EtcdClusterSpec, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	switch v.MajorVersion {
+	case "":
+		// OK:
+	case "v3":
+		allErrs = append(allErrs, ValidateEtcdVersionForCalicoV3(e, v.MajorVersion, fldPath)...)
+	default:
+		allErrs = append(allErrs, field.NotSupported(fldPath.Child("MajorVersion"), v.MajorVersion, []string{"v3"}))
+	}
+
+	return allErrs
 }

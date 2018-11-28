@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"os"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -34,7 +33,7 @@ import (
 	"k8s.io/kops/util/pkg/vfs"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	"k8s.io/kubernetes/pkg/kubectl/util/i18n"
 )
 
@@ -72,7 +71,7 @@ var (
 	kops create ig --name=k8s-cluster.example.com node-example \
 		--role node --subnet my-subnet-name
 
-	# Create an new ssh public key called admin.
+	# Create a new ssh public key called admin.
 	kops create secret sshpublickey admin -i ~/.ssh/id_rsa.pub \
 		--name k8s-cluster.example.com --state s3://example.com
 	`))
@@ -167,10 +166,9 @@ func RunCreate(f *util.Factory, out io.Writer, c *CreateOptions) error {
 						return fmt.Errorf("cluster %q already exists", v.ObjectMeta.Name)
 					}
 					return fmt.Errorf("error creating cluster: %v", err)
-				} else {
-					fmt.Fprintf(&sb, "Created cluster/%s\n", v.ObjectMeta.Name)
-					//cSpec = true
 				}
+				fmt.Fprintf(&sb, "Created cluster/%s\n", v.ObjectMeta.Name)
+				//cSpec = true
 
 			case *kopsapi.InstanceGroup:
 				clusterName = v.ObjectMeta.Labels[kopsapi.LabelClusterName]
@@ -219,9 +217,8 @@ func RunCreate(f *util.Factory, out io.Writer, c *CreateOptions) error {
 				err = sshCredentialStore.AddSSHPublicKey("admin", sshKeyArr)
 				if err != nil {
 					return err
-				} else {
-					fmt.Fprintf(&sb, "Added ssh credential\n")
 				}
+				fmt.Fprintf(&sb, "Added ssh credential\n")
 
 			default:
 				glog.V(2).Infof("Type of object was %T", v)
@@ -244,16 +241,4 @@ func RunCreate(f *util.Factory, out io.Writer, c *CreateOptions) error {
 		}
 	}
 	return nil
-}
-
-// ConsumeStdin reads all the bytes available from stdin
-func ConsumeStdin() ([]byte, error) {
-	file := os.Stdin
-	buf := new(bytes.Buffer)
-	_, err := buf.ReadFrom(file)
-	if err != nil {
-		return nil, fmt.Errorf("error reading stdin: %v", err)
-	}
-
-	return buf.Bytes(), nil
 }

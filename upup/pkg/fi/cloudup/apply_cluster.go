@@ -23,6 +23,8 @@ import (
 	"path"
 	"strings"
 
+	"k8s.io/kops/pkg/k8sversion"
+
 	"github.com/blang/semver"
 	"github.com/golang/glog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,6 +47,7 @@ import (
 	"k8s.io/kops/pkg/model/domodel"
 	"k8s.io/kops/pkg/model/gcemodel"
 	"k8s.io/kops/pkg/model/openstackmodel"
+	"k8s.io/kops/pkg/model/spotinstmodel"
 	"k8s.io/kops/pkg/model/vspheremodel"
 	"k8s.io/kops/pkg/resources/digitalocean"
 	"k8s.io/kops/pkg/templates"
@@ -63,6 +66,7 @@ import (
 	"k8s.io/kops/upup/pkg/fi/cloudup/gcetasks"
 	"k8s.io/kops/upup/pkg/fi/cloudup/openstack"
 	"k8s.io/kops/upup/pkg/fi/cloudup/openstacktasks"
+	"k8s.io/kops/upup/pkg/fi/cloudup/spotinsttasks"
 	"k8s.io/kops/upup/pkg/fi/cloudup/terraform"
 	"k8s.io/kops/upup/pkg/fi/cloudup/vsphere"
 	"k8s.io/kops/upup/pkg/fi/cloudup/vspheretasks"
@@ -279,6 +283,36 @@ func (c *ApplyClusterCmd) Run() error {
 		cluster.Spec.KubernetesVersion = versionWithoutV
 	}
 
+	kv, err := k8sversion.Parse(cluster.Spec.KubernetesVersion)
+	if err != nil {
+		return err
+	}
+
+	// check if we should recommend turning off anonymousAuth on k8s versions gte than 1.10
+	// we do 1.10 since this is a really critical issues and 1.10 has it
+	if kv.IsGTE("1.10") {
+		// we do a check here because setting modifying the kubelet object messes with the output
+		warn := false
+		if cluster.Spec.Kubelet == nil {
+			warn = true
+		} else if cluster.Spec.Kubelet.AnonymousAuth == nil {
+			warn = true
+		}
+
+		if warn {
+			fmt.Println("")
+			fmt.Printf(starline)
+			fmt.Println("")
+			fmt.Println("Kubelet anonymousAuth is currently turned on. This allows RBAC escalation and remote code execution possibilites.")
+			fmt.Println("It is highly recommended you turn it off by setting 'spec.kubelet.anonymousAuth' to 'false' via 'kops edit cluster'")
+			fmt.Println("")
+			fmt.Println("See https://github.com/kubernetes/kops/blob/master/docs/security.md#kubelet-api")
+			fmt.Println("")
+			fmt.Printf(starline)
+			fmt.Println("")
+		}
+	}
+
 	if err := c.AddFileAssets(assetBuilder); err != nil {
 		return err
 	}
@@ -419,6 +453,9 @@ func (c *ApplyClusterCmd) Run() error {
 				// Autoscaling
 				"autoscalingGroup":    &awstasks.AutoscalingGroup{},
 				"launchConfiguration": &awstasks.LaunchConfiguration{},
+
+				// Spotinst
+				"spotinstElastigroup": &spotinsttasks.Elastigroup{},
 			})
 
 			if len(sshPublicKeys) == 0 {
@@ -700,17 +737,24 @@ func (c *ApplyClusterCmd) Run() error {
 			KopsModelContext: modelContext,
 		}
 
-		l.Builders = append(l.Builders, &awsmodel.AutoscalingGroupModelBuilder{
-			AWSModelContext: awsModelContext,
-			BootstrapScript: bootstrapScriptBuilder,
-			Lifecycle:       &clusterLifecycle,
-
-			SecurityLifecycle: &securityLifecycle,
-		})
+		if featureflag.Spotinst.Enabled() {
+			l.Builders = append(l.Builders, &spotinstmodel.ElastigroupModelBuilder{
+				AWSModelContext:   awsModelContext,
+				BootstrapScript:   bootstrapScriptBuilder,
+				Lifecycle:         &clusterLifecycle,
+				SecurityLifecycle: &securityLifecycle,
+			})
+		} else {
+			l.Builders = append(l.Builders, &awsmodel.AutoscalingGroupModelBuilder{
+				AWSModelContext:   awsModelContext,
+				BootstrapScript:   bootstrapScriptBuilder,
+				Lifecycle:         &clusterLifecycle,
+				SecurityLifecycle: &securityLifecycle,
+			})
+		}
 	case kops.CloudProviderAzure:
 		// TODO: BP Implement
 		glog.Info("Autoscaling Group for Azure not implemented yet")
-
 	case kops.CloudProviderDO:
 		doModelContext := &domodel.DOModelContext{
 			KopsModelContext: modelContext,
@@ -1112,10 +1156,22 @@ func (c *ApplyClusterCmd) AddFileAssets(assetBuilder *assets.AssetBuilder) error
 		c.Assets = append(c.Assets, cniAssetHashString+"@"+cniAsset.String())
 	}
 
+	if c.Cluster.Spec.Networking.LyftVPC != nil {
+		lyftVPCDownloadURL := os.Getenv("LYFT_VPC_DOWNLOAD_URL")
+		if lyftVPCDownloadURL == "" {
+			lyftVPCDownloadURL = "bfdc65028a3bf8ffe14388fca28ede3600e7e2dee4e781908b6a23f9e79f86ad@https://github.com/lyft/cni-ipvlan-vpc-k8s/releases/download/v0.4.2/cni-ipvlan-vpc-k8s-v0.4.2.tar.gz"
+		} else {
+			glog.Warningf("Using url from LYFT_VPC_DOWNLOAD_URL env var: %q", lyftVPCDownloadURL)
+		}
+
+		c.Assets = append(c.Assets, lyftVPCDownloadURL)
+	}
+
 	// TODO figure out if we can only do this for CoreOS only and GCE Container OS
 	// TODO It is very difficult to pre-determine what OS an ami is, and if that OS needs socat
-	// At this time we just copy the socat binary to all distros.  Most distros will be there own
-	// socat binary.  Container operating systems like CoreOS need to have socat added to them.
+	// At this time we just copy the socat and conntrack binaries to all distros.
+	// Most distros will have their own socat and conntrack binary.
+	// Container operating systems like CoreOS need to have socat and conntrack added to them.
 	{
 		utilsLocation, hash, err := KopsFileUrl("linux/amd64/utils.tar.gz", assetBuilder)
 		if err != nil {
@@ -1263,7 +1319,7 @@ func (c *ApplyClusterCmd) BuildNodeUpConfig(assetBuilder *assets.AssetBuilder, i
 
 	if role == kops.InstanceGroupRoleMaster {
 		for _, etcdCluster := range cluster.Spec.EtcdClusters {
-			if etcdCluster.Manager != nil {
+			if etcdCluster.Provider == kops.EtcdProviderTypeManager {
 				p := configBase.Join("manifests/etcd/" + etcdCluster.Name + ".yaml").Path()
 				config.EtcdManifests = append(config.EtcdManifests, p)
 			}

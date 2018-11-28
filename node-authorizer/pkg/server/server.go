@@ -37,7 +37,7 @@ import (
 
 const (
 	// Version is the server version
-	Version = "v0.0.1"
+	Version = "v0.0.4"
 	// the namespace to place the secrets
 	tokenNamespace = "kube-system"
 )
@@ -55,15 +55,15 @@ type NodeAuthorizer struct {
 // New creates and returns a node authorizer
 func New(config *Config, authorizer Authorizer) (*NodeAuthorizer, error) {
 	utils.Logger.Info("starting the node authorization service",
-		zap.String("listen", Version),
-		zap.String("version", config.Listen))
-
-	if err := config.IsValid(); err != nil {
-		return nil, fmt.Errorf("configuration error: %s", err)
-	}
+		zap.String("listen", config.Listen),
+		zap.String("version", Version))
 
 	if authorizer == nil {
 		return nil, errors.New("no authorizer")
+	}
+
+	if err := config.IsValid(); err != nil {
+		return nil, fmt.Errorf("configuration error: %s", err)
 	}
 
 	return &NodeAuthorizer{
@@ -109,7 +109,7 @@ func (n *NodeAuthorizer) Run() error {
 	r.Handle("/authorize/{name}", authorized(n.authorizeHandler, n.config.ClientCommonName, n.useMutualTLS())).Methods(http.MethodPost)
 	r.Handle("/metrics", prometheus.Handler()).Methods(http.MethodGet)
 	r.HandleFunc("/health", n.healthHandler).Methods(http.MethodGet)
-	server.Handler = r
+	server.Handler = recovery(r)
 
 	// @step: wait for either an error or a termination signal
 	errs := make(chan error, 2)

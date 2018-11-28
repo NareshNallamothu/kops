@@ -19,6 +19,7 @@ package commands
 import (
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -84,9 +85,32 @@ func SetClusterFields(fields []string, cluster *api.Cluster, instanceGroups []*a
 			cluster.Spec.NodePortAccess = append(cluster.Spec.NodePortAccess, kv[1])
 		case "spec.kubernetesVersion":
 			cluster.Spec.KubernetesVersion = kv[1]
+
+		case "cluster.spec.etcdClusters[*].enableEtcdTLS":
+			v, err := strconv.ParseBool(kv[1])
+			if err != nil {
+				return fmt.Errorf("unknown boolean value: %q", kv[1])
+			}
+			for _, c := range cluster.Spec.EtcdClusters {
+				c.EnableEtcdTLS = v
+			}
+
+		case "cluster.spec.etcdClusters[*].enableTLSAuth":
+			v, err := strconv.ParseBool(kv[1])
+			if err != nil {
+				return fmt.Errorf("unknown boolean value: %q", kv[1])
+			}
+			for _, c := range cluster.Spec.EtcdClusters {
+				c.EnableTLSAuth = v
+			}
+
 		case "cluster.spec.etcdClusters[*].version":
 			for _, c := range cluster.Spec.EtcdClusters {
 				c.Version = kv[1]
+			}
+		case "cluster.spec.etcdClusters[*].provider":
+			for _, etcd := range cluster.Spec.EtcdClusters {
+				etcd.Provider = api.EtcdProviderType(kv[1])
 			}
 		case "cluster.spec.etcdClusters[*].manager.image":
 			for _, etcd := range cluster.Spec.EtcdClusters {

@@ -163,6 +163,8 @@ type ClusterSpec struct {
 	IAM *IAMSpec `json:"iam,omitempty"`
 	// EncryptionConfig holds the encryption config
 	EncryptionConfig *bool `json:"encryptionConfig,omitempty"`
+	// DisableSubnetTags controls if subnets are tagged in AWS
+	DisableSubnetTags bool `json:"DisableSubnetTags,omitempty"`
 	// Target allows for us to nest extra config for targets such as terraform
 	Target *TargetSpec `json:"target,omitempty"`
 }
@@ -243,6 +245,10 @@ type HookSpec struct {
 	ExecContainer *ExecContainerAction `json:"execContainer,omitempty"`
 	// Manifest is a raw systemd unit file
 	Manifest string `json:"manifest,omitempty"`
+	// UseRawManifest indicates that the contents of Manifest should be used as the contents
+	// of the systemd unit, unmodified. Before and Requires are ignored when used together
+	// with this value (and validation shouldn't allow them to be set)
+	UseRawManifest bool `json:"useRawManifest,omitempty"`
 }
 
 // ExecContainerAction defines an hood action
@@ -310,16 +316,23 @@ const (
 
 // LoadBalancerAccessSpec provides configuration details related to API LoadBalancer and its access
 type LoadBalancerAccessSpec struct {
-	Type                     LoadBalancerType `json:"type,omitempty"`
-	IdleTimeoutSeconds       *int64           `json:"idleTimeoutSeconds,omitempty"`
-	AdditionalSecurityGroups []string         `json:"additionalSecurityGroups,omitempty"`
-	UseForInternalApi        bool             `json:"useForInternalApi,omitempty"`
-	SSLCertificate           string           `json:"sslCertificate,omitempty"`
+	// Type of load balancer to create may Public or Internal.
+	Type LoadBalancerType `json:"type,omitempty"`
+	// IdleTimeoutSeconds sets the timeout of the api loadbalancer.
+	IdleTimeoutSeconds *int64 `json:"idleTimeoutSeconds,omitempty"`
+	// SecurityGroupOverride overrides the default Kops created SG for the load balancer.
+	SecurityGroupOverride *string `json:"securityGroupOverride,omitempty"`
+	// AdditionalSecurityGroups attaches additional security groups (e.g. sg-123456).
+	AdditionalSecurityGroups []string `json:"additionalSecurityGroups,omitempty"`
+	// UseForInternalApi indicates whether the LB should be used by the kubelet
+	UseForInternalApi bool `json:"useForInternalApi,omitempty"`
+	// SSLCertificate allows you to specify the ACM cert to be used the LB
+	SSLCertificate string `json:"sslCertificate,omitempty"`
 }
 
 // KubeDNSConfig defines the kube dns configuration
 type KubeDNSConfig struct {
-	// CacheMaxSize is the maximum entries to keep in dnsmaq
+	// CacheMaxSize is the maximum entries to keep in dnsmasq
 	CacheMaxSize int `json:"cacheMaxSize,omitempty"`
 	// CacheMaxConcurrent is the maximum number of concurrent queries for dnsmasq
 	CacheMaxConcurrent int `json:"cacheMaxConcurrent,omitempty"`
@@ -349,10 +362,21 @@ type ExternalDNSConfig struct {
 	WatchNamespace string `json:"watchNamespace,omitempty"`
 }
 
+// EtcdProviderType describes etcd cluster provisioning types (Standalone, Manager)
+type EtcdProviderType string
+
+const (
+	EtcdProviderTypeManager EtcdProviderType = "Manager"
+	EtcdProviderTypeLegacy  EtcdProviderType = "Legacy"
+)
+
 // EtcdClusterSpec is the etcd cluster specification
 type EtcdClusterSpec struct {
 	// Name is the name of the etcd cluster (main, events etc)
 	Name string `json:"name,omitempty"`
+	// Provider is the provider used to run etcd: standalone, manager.
+	// We default to manager for kubernetes 1.11 or if the manager is configured; otherwise standalone.
+	Provider EtcdProviderType `json:"provider,omitempty"`
 	// Members stores the configurations for each member of the cluster (including the data volume)
 	Members []*EtcdMemberSpec `json:"etcdMembers,omitempty"`
 	// EnableTLSAuth indicates client and peer TLS auth should be enforced

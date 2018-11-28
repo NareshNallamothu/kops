@@ -82,9 +82,6 @@ func BuildCloud(cluster *kops.Cluster) (fi.Cloud, error) {
 			}
 
 			cloudTags := map[string]string{awsup.TagClusterName: cluster.ObjectMeta.Name}
-			for k, v := range cluster.Spec.CloudLabels {
-				cloudTags[k] = v
-			}
 
 			awsCloud, err := awsup.NewAWSCloud(region, cloudTags)
 			if err != nil {
@@ -139,7 +136,7 @@ func BuildCloud(cluster *kops.Cluster) (fi.Cloud, error) {
 			region := cluster.Spec.Subnets[0].Zone
 			doCloud, err := do.NewDOCloud(region)
 			if err != nil {
-				return nil, fmt.Errorf("error initializin digitalocean cloud!")
+				return nil, fmt.Errorf("error initializing digitalocean cloud: %s", err)
 			}
 
 			cloud = doCloud
