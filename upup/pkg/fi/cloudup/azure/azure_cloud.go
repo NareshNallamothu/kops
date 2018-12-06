@@ -20,7 +20,9 @@ import (
 	"fmt"
 	"os"
 
+	disks "github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2018-04-01/compute"
 	compute "github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2018-06-01/compute"
+	resources "github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2018-02-01/resources"
 	storage "github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2018-02-01/storage"
 	"github.com/Azure/go-autorest/autorest/azure/auth"
 	"github.com/golang/glog"
@@ -35,27 +37,34 @@ type AzureCloud interface {
 	fi.Cloud
 
 	// TODO: BP Incomplete
+	ResourceGroup() *resources.GroupsClient
 	Compute() *compute.VirtualMachinesClient
 	Storage() *storage.AccountsClient
+	Disk() *disks.DisksClient
 
 	Region() string
+	ResourceGroupName() string
 
 	// DefaultInstanceType determines a suitable instance type for the specified instance group
 	DefaultInstanceType(cluster *kops.Cluster, ig *kops.InstanceGroup) (string, error)
 }
 
 type azureCloudImplementation struct {
-	compute *compute.VirtualMachinesClient
-	storage *storage.AccountsClient
+	resourceGroup *resources.GroupsClient
+	compute       *compute.VirtualMachinesClient
+	storage       *storage.AccountsClient
+	disk          *disks.DisksClient
 
-	region string
+	region            string
+	resourceGroupName string
 }
 
 var _ fi.Cloud = &azureCloudImplementation{}
 
-func NewAzureCloud(region string, tags map[string]string) (AzureCloud, error) {
+func NewAzureCloud(region string, resourceGroupName string, tags map[string]string) (AzureCloud, error) {
 	c := &azureCloudImplementation{
-		region: region,
+		region:            region,
+		resourceGroupName: resourceGroupName,
 	}
 
 	// TODO: BP Make this a const
@@ -64,21 +73,32 @@ func NewAzureCloud(region string, tags map[string]string) (AzureCloud, error) {
 		return nil, fmt.Errorf("Error building Azure API client. AZURE_SUBSCRIPTION_ID env variable not found")
 	}
 
+	resourceGroupClient := resources.NewGroupsClient(subscriptionID)
 	computeClient := compute.NewVirtualMachinesClient(subscriptionID)
 	storageClient := storage.NewAccountsClient(subscriptionID)
+	disksClient := disks.NewDisksClient(subscriptionID)
 
 	authorizer, err := auth.NewAuthorizerFromEnvironment()
 	if err != nil {
 		return nil, fmt.Errorf("Error building Azure API client: %v", err)
 	}
 
+	resourceGroupClient.Authorizer = authorizer
 	computeClient.Authorizer = authorizer
 	storageClient.Authorizer = authorizer
+	disksClient.Authorizer = authorizer
 
+	c.resourceGroup = &resourceGroupClient
 	c.compute = &computeClient
 	c.storage = &storageClient
+	c.disk = &disksClient
 
 	return c, nil
+}
+
+// Compute returns private struct element resourceGroup.
+func (c *azureCloudImplementation) ResourceGroup() *resources.GroupsClient {
+	return c.resourceGroup
 }
 
 // Compute returns private struct element compute.
@@ -91,6 +111,11 @@ func (c *azureCloudImplementation) Storage() *storage.AccountsClient {
 	return c.storage
 }
 
+// Disk returns private struct element disk.
+func (c *azureCloudImplementation) Disk() *disks.DisksClient {
+	return c.disk
+}
+
 func (c *azureCloudImplementation) ProviderID() kops.CloudProviderID {
 	return kops.CloudProviderAzure
 }
@@ -98,6 +123,10 @@ func (c *azureCloudImplementation) ProviderID() kops.CloudProviderID {
 // Region returns private struct element region.
 func (c *azureCloudImplementation) Region() string {
 	return c.region
+}
+
+func (c *azureCloudImplementation) ResourceGroupName() string {
+	return c.resourceGroupName
 }
 
 // DefaultInstanceType determines an instance type for the specified cluster & instance group
@@ -118,15 +147,15 @@ func (c *azureCloudImplementation) DefaultInstanceType(cluster *kops.Cluster, ig
 }
 
 func (c *azureCloudImplementation) DNS() (dnsprovider.Interface, error) {
-	return nil, fmt.Errorf("not implemented")
+	return nil, fmt.Errorf("DNS() not implemented")
 }
 
 func (c *azureCloudImplementation) DeleteGroup(g *cloudinstances.CloudInstanceGroup) error {
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf("DeleteGroup() not implemented")
 }
 
 func (c *azureCloudImplementation) DeleteInstance(i *cloudinstances.CloudInstanceGroupMember) error {
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf("DeleteInstance() not implemented")
 }
 
 func (c *azureCloudImplementation) FindVPCInfo(vpcID string) (*fi.VPCInfo, error) {
@@ -135,5 +164,5 @@ func (c *azureCloudImplementation) FindVPCInfo(vpcID string) (*fi.VPCInfo, error
 }
 
 func (c *azureCloudImplementation) GetCloudGroups(cluster *kops.Cluster, instancegroups []*kops.InstanceGroup, warnUnmatched bool, nodes []v1.Node) (map[string]*cloudinstances.CloudInstanceGroup, error) {
-	return nil, fmt.Errorf("not implemented")
+	return nil, fmt.Errorf("GetCloudGroups() not implemented")
 }

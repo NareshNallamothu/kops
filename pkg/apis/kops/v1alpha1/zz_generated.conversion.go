@@ -835,6 +835,7 @@ func autoConvert_v1alpha1_ClusterSpec_To_kops_ClusterSpec(in *ClusterSpec, out *
 	out.KubernetesVersion = in.KubernetesVersion
 	// WARNING: in.Zones requires manual conversion: does not exist in peer-type
 	out.Project = in.Project
+	out.ResourceGroup = in.ResourceGroup
 	out.MasterPublicName = in.MasterPublicName
 	out.MasterInternalName = in.MasterInternalName
 	out.NetworkCIDR = in.NetworkCIDR
@@ -1101,6 +1102,7 @@ func autoConvert_kops_ClusterSpec_To_v1alpha1_ClusterSpec(in *kops.ClusterSpec, 
 	out.KubernetesVersion = in.KubernetesVersion
 	// WARNING: in.Subnets requires manual conversion: does not exist in peer-type
 	out.Project = in.Project
+	out.ResourceGroup = in.ResourceGroup
 	out.MasterPublicName = in.MasterPublicName
 	out.MasterInternalName = in.MasterInternalName
 	out.NetworkCIDR = in.NetworkCIDR

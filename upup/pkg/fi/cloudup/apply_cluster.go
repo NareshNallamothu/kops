@@ -23,6 +23,8 @@ import (
 	"path"
 	"strings"
 
+	"k8s.io/kops/upup/pkg/fi/cloudup/azuretasks"
+
 	"k8s.io/kops/pkg/k8sversion"
 
 	"github.com/blang/semver"
@@ -42,6 +44,7 @@ import (
 	"k8s.io/kops/pkg/model"
 	"k8s.io/kops/pkg/model/alimodel"
 	"k8s.io/kops/pkg/model/awsmodel"
+	"k8s.io/kops/pkg/model/azuremodel"
 	"k8s.io/kops/pkg/model/components"
 	"k8s.io/kops/pkg/model/components/etcdmanager"
 	"k8s.io/kops/pkg/model/domodel"
@@ -394,9 +397,11 @@ func (c *ApplyClusterCmd) Run() error {
 				return fmt.Errorf("Azure support is currently alpha, and is feature-gated.  export KOPS_FEATURE_FLAGS=AlphaAllowAzure")
 			}
 
-			// l.AddTypes(map[string]interface{}}
-			// );
 			modelContext.SSHPublicKeys = sshPublicKeys
+
+			l.AddTypes(map[string]interface{}{
+				"ResourceGroup": &azuretasks.ResourceGroup{},
+			})
 		}
 
 	case kops.CloudProviderDO:
@@ -434,16 +439,16 @@ func (c *ApplyClusterCmd) Run() error {
 				"iamRolePolicy":          &awstasks.IAMRolePolicy{},
 
 				// VPC / Networking
-				"dhcpOptions":           &awstasks.DHCPOptions{},
-				"internetGateway":       &awstasks.InternetGateway{},
-				"route":                 &awstasks.Route{},
-				"routeTable":            &awstasks.RouteTable{},
-				"routeTableAssociation": &awstasks.RouteTableAssociation{},
-				"securityGroup":         &awstasks.SecurityGroup{},
-				"securityGroupRule":     &awstasks.SecurityGroupRule{},
-				"subnet":                &awstasks.Subnet{},
-				"vpc":                   &awstasks.VPC{},
-				"ngw":                   &awstasks.NatGateway{},
+				"dhcpOptions":                &awstasks.DHCPOptions{},
+				"internetGateway":            &awstasks.InternetGateway{},
+				"route":                      &awstasks.Route{},
+				"routeTable":                 &awstasks.RouteTable{},
+				"routeTableAssociation":      &awstasks.RouteTableAssociation{},
+				"securityGroup":              &awstasks.SecurityGroup{},
+				"securityGroupRule":          &awstasks.SecurityGroupRule{},
+				"subnet":                     &awstasks.Subnet{},
+				"vpc":                        &awstasks.VPC{},
+				"ngw":                        &awstasks.NatGateway{},
 				"vpcDHDCPOptionsAssociation": &awstasks.VPCDHCPOptionsAssociation{},
 
 				// ELB
@@ -642,6 +647,24 @@ func (c *ApplyClusterCmd) Run() error {
 				l.Builders = append(l.Builders,
 					&model.IAMModelBuilder{KopsModelContext: modelContext, Lifecycle: &securityLifecycle},
 				)
+
+			case kops.CloudProviderAzure:
+
+				azureModelContext := &azuremodel.AzureModelContext{
+					KopsModelContext: modelContext,
+				}
+
+				l.Builders = append(l.Builders,
+					&azuremodel.ResourceGroupBuilder{
+						AzureModelContext: azureModelContext,
+						Lifecycle:         &clusterLifecycle,
+					},
+					&model.MasterVolumeBuilder{
+						KopsModelContext: modelContext,
+						Lifecycle:        &clusterLifecycle,
+					},
+				)
+
 			case kops.CloudProviderDO:
 				l.Builders = append(l.Builders,
 					&model.MasterVolumeBuilder{KopsModelContext: modelContext, Lifecycle: &clusterLifecycle},
@@ -670,13 +693,6 @@ func (c *ApplyClusterCmd) Run() error {
 				l.Builders = append(l.Builders,
 					&gcemodel.StorageAclBuilder{GCEModelContext: gceModelContext, Cloud: cloud.(gce.GCECloud), Lifecycle: &storageAclLifecycle},
 				)
-
-			case kops.CloudProviderAzure:
-				// No special settings (yet!)
-				glog.Infof("No special settings For Azure (yet!)")
-				// azureModelContext := &azuremodel.AzureModelContext{
-				// 	KopsModelContext: modelContext,
-				// }
 
 			case kops.CloudProviderALI:
 				aliModelContext := &alimodel.ALIModelContext{

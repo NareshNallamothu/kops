@@ -111,10 +111,16 @@ func BuildCloud(cluster *kops.Cluster) (fi.Cloud, error) {
 			// 	return nil, fmt.Errorf("Clusters cannot span multiple regions")
 			// }
 
-			tags := map[string]string{azure.TagClusterName: cluster.ObjectMeta.Name}
+			resourceGroup := cluster.Spec.ResourceGroup
+			if resourceGroup == "" {
+				return nil, fmt.Errorf("resource group name is required for Azure")
+			}
+			tags := map[string]string{
+				azure.TagClusterName: cluster.ObjectMeta.Name,
+			}
 
 			// TODO: BP What else do we add here?
-			azureCloud, err := azure.NewAzureCloud(region, tags)
+			azureCloud, err := azure.NewAzureCloud(region, resourceGroup, tags)
 			if err != nil {
 				return nil, err
 			}

@@ -45,10 +45,8 @@ go_library(
         "zz_generated_version.go",
         "zz_response_helpers.go",
     ],
-    importmap = "vendor/github.com/Azure/azure-storage-blob-go/2016-05-31/azblob",
+    importmap = "k8s.io/kops/vendor/github.com/Azure/azure-storage-blob-go/2016-05-31/azblob",
     importpath = "github.com/Azure/azure-storage-blob-go/2016-05-31/azblob",
     visibility = ["//visibility:public"],
-    deps = [
-        "//vendor/github.com/Azure/azure-pipeline-go/pipeline:go_default_library",
-    ],
+    deps = ["//vendor/github.com/Azure/azure-pipeline-go/pipeline:go_default_library"],
 )

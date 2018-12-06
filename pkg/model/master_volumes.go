@@ -29,6 +29,8 @@ import (
 	"k8s.io/kops/upup/pkg/fi/cloudup/aliup"
 	"k8s.io/kops/upup/pkg/fi/cloudup/awstasks"
 	"k8s.io/kops/upup/pkg/fi/cloudup/awsup"
+	"k8s.io/kops/upup/pkg/fi/cloudup/azure"
+	"k8s.io/kops/upup/pkg/fi/cloudup/azuretasks"
 	"k8s.io/kops/upup/pkg/fi/cloudup/dotasks"
 	"k8s.io/kops/upup/pkg/fi/cloudup/gce"
 	"k8s.io/kops/upup/pkg/fi/cloudup/gcetasks"
@@ -37,11 +39,12 @@ import (
 )
 
 const (
-	DefaultEtcdVolumeSize    = 20
-	DefaultAWSEtcdVolumeType = "gp2"
-	DefaultAWSEtcdVolumeIops = 100
-	DefaultGCEEtcdVolumeType = "pd-ssd"
-	DefaultALIEtcdVolumeType = "cloud_ssd"
+	DefaultEtcdVolumeSize      = 20
+	DefaultAWSEtcdVolumeType   = "gp2"
+	DefaultAWSEtcdVolumeIops   = 100
+	DefaultAzureEtcdVolumeType = "StandardSSD_LRS"
+	DefaultGCEEtcdVolumeType   = "pd-ssd"
+	DefaultALIEtcdVolumeType   = "cloud_ssd"
 )
 
 // MasterVolumeBuilder builds master EBS volumes
@@ -244,7 +247,35 @@ func (b *MasterVolumeBuilder) addGCEVolume(c *fi.ModelBuilderContext, name strin
 }
 
 func (b *MasterVolumeBuilder) addAzureVolume(c *fi.ModelBuilderContext, name string, volumeSize int32, zone string, etcd *kops.EtcdClusterSpec, m *kops.EtcdMemberSpec, allMembers []string) {
-	fmt.Print("addAzureVolume not implemented")
+	volumeType := fi.StringValue(m.VolumeType)
+	if volumeType == "" {
+		volumeType = DefaultAzureEtcdVolumeType
+	}
+
+	// The tags are how protokube knows to mount the volume and use it for etcd
+	tags := make(map[string]string)
+
+	// Apply all user defined labels on the volumes
+	for k, v := range b.Cluster.Spec.CloudLabels {
+		tags[k] = v
+	}
+
+	// This is the configuration of the etcd cluster
+	tags[azure.TagNameEtcdClusterPrefix+etcd.Name] = m.Name + "-" + strings.Join(allMembers, ",")
+	// This says "only mount on a master"
+	tags[azure.TagNameRolePrefix+"master"] = "1"
+
+	t := &azuretasks.Disk{
+		Name:          s(name),
+		Lifecycle:     b.Lifecycle,
+		ResourceGroup: s(b.Cluster.Spec.ResourceGroup),
+		Location:      s(zone),
+		VolumeType:    s(volumeType),
+		SizeGB:        i32(volumeSize),
+		Tags:          tags,
+	}
+
+	c.AddTask(t)
 }
 
 func (b *MasterVolumeBuilder) addVSphereVolume(c *fi.ModelBuilderContext, name string, volumeSize int32, zone string, etcd *kops.EtcdClusterSpec, m *kops.EtcdMemberSpec, allMembers []string) {

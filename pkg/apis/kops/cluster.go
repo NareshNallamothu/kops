@@ -62,6 +62,8 @@ type ClusterSpec struct {
 	Subnets []ClusterSubnetSpec `json:"subnets,omitempty"`
 	// Project is the cloud project we should use, required on GCE
 	Project string `json:"project,omitempty"`
+	// ResourceGroup is the resource group we should use to deploy in Azure
+	ResourceGroup string `json:"resourceGroup,omitempty"`
 	// MasterPublicName is the external DNS name for the master nodes
 	MasterPublicName string `json:"masterPublicName,omitempty"`
 	// MasterInternalName is the internal DNS name for the master nodes

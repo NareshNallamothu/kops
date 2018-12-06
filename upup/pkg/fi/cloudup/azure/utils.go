@@ -16,10 +16,12 @@ limitations under the License.
 
 package azure
 
-import "github.com/Azure/go-autorest/autorest"
+import (
+	"github.com/Azure/go-autorest/autorest"
+)
 
 func IsNotFound(err error) bool {
-	apiErr, ok := err.(*autorest.DetailedError)
+	apiErr, ok := err.(autorest.DetailedError)
 	if !ok {
 		return false
 	}

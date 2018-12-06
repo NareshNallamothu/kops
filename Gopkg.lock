@@ -20,26 +20,32 @@
   revision = "3b1ae45394a234c385be014e9a488f2bb6eef821"
 
 [[projects]]
+  digest = "1:d2ccb697dc13c8fbffafa37baae97594d5592ae8f7e113471084137315536e2b"
   name = "github.com/Azure/azure-pipeline-go"
   packages = ["pipeline"]
+  pruneopts = "UT"
   revision = "7571e8eb0876932ab505918ff7ed5107773e5ee2"
   version = "0.1.7"
 
 [[projects]]
+  digest = "1:ec81a9681ddd909669b9dfac5d06a841f0509ea6270d7cc7632404698ba7ceff"
   name = "github.com/Azure/azure-sdk-for-go"
   packages = [
+    "services/compute/mgmt/2018-04-01/compute",
     "services/compute/mgmt/2018-06-01/compute",
-    "services/network/mgmt/2018-05-01/network",
-    "services/resources/mgmt/2018-05-01/resources",
+    "services/resources/mgmt/2018-02-01/resources",
     "services/storage/mgmt/2018-02-01/storage",
-    "version"
+    "version",
   ]
+  pruneopts = "UT"
   revision = "4e8cbbfb1aeab140cd0fa97fd16b64ee18c3ca6a"
   version = "v19.1.0"
 
 [[projects]]
+  digest = "1:ac209d351011911e8f0846515a4c17dc6fca0238c2bc8f5403a8eae15acd5422"
   name = "github.com/Azure/azure-storage-blob-go"
   packages = ["2016-05-31/azblob"]
+  pruneopts = "UT"
   revision = "66ba96e49ebbdc3cd26970c6c675c906d304b5e2"
   version = "0.1.4"
 
@@ -54,7 +60,7 @@
   revision = "19f72df4d05d31cbe1c56bfc8045c96babff6c7e"
 
 [[projects]]
-  digest = "1:c54c12f9d6716aad8079084272c0c6ac6f21abe203c374e13b512e05d51669fb"
+  digest = "1:b8a61bb5402d1b01ada88ccb213da33a5d29683cba5ce93813aa67d5826afe56"
   name = "github.com/Azure/go-autorest"
   packages = [
     "autorest",
@@ -63,10 +69,13 @@
     "autorest/azure/auth",
     "autorest/date",
     "autorest/to",
-    "autorest/validation"
+    "autorest/validation",
+    "logger",
+    "version",
   ]
   pruneopts = "UT"
-  revision = "1ff28809256a84bb6966640ff3d0371af82ccba4"
+  revision = "9bc4033dd347c7f416fca46b2f42a043dc1fbdf6"
+  version = "v10.15.5"
 
 [[projects]]
   digest = "1:51d5156c2de01719fdf90b21197b95bc7e8c9d43ca0d5c3f5c875b8b530077c8"
@@ -342,6 +351,14 @@
   ]
   pruneopts = "UT"
   revision = "34840385860db94c88d044571153b6a200ca40b2"
+
+[[projects]]
+  branch = "master"
+  digest = "1:e608bc2d867c3ded40ccea5417715393a50704ac24004afa87431a0e1976e50d"
+  name = "github.com/dimchansky/utfbom"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "5448fe645cb1964ba70ac8f9f2ffe975e61a536c"
 
 [[projects]]
   digest = "1:4189ee6a3844f555124d9d2656fe7af02fca961c2a9bad9074789df13a0c62e0"
@@ -1215,7 +1232,7 @@
   version = "v1.8.0"
 
 [[projects]]
-  digest = "1:19e31c525bada0ceb0ffa11a708fc22e2a93bf86141a0df8227e3b30ce3c5e71"
+  digest = "1:925787beff448df4bc69a0a81ed0a354f4a66377035636c8ba02c672fc94054a"
   name = "golang.org/x/crypto"
   packages = [
     "curve25519",
@@ -1225,6 +1242,8 @@
     "nacl/box",
     "nacl/secretbox",
     "pbkdf2",
+    "pkcs12",
+    "pkcs12/internal/rc2",
     "poly1305",
     "salsa20/salsa",
     "scrypt",
@@ -2140,6 +2159,13 @@
   analyzer-version = 1
   input-imports = [
     "cloud.google.com/go/compute/metadata",
+    "github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2018-04-01/compute",
+    "github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2018-06-01/compute",
+    "github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2018-02-01/resources",
+    "github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2018-02-01/storage",
+    "github.com/Azure/azure-storage-blob-go/2016-05-31/azblob",
+    "github.com/Azure/go-autorest/autorest",
+    "github.com/Azure/go-autorest/autorest/azure/auth",
     "github.com/MakeNowJust/heredoc",
     "github.com/Masterminds/sprig",
     "github.com/aws/aws-sdk-go/aws",

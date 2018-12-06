@@ -17,3 +17,5 @@ limitations under the License.
 package azure
 
 const TagClusterName = "KubernetesCluster"
+const TagNameRolePrefix = "k8s.io-role-"
+const TagNameEtcdClusterPrefix = "k8s.io-etcd-"

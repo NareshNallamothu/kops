@@ -95,6 +95,30 @@ func Uint64Value(v *uint64) uint64 {
 	return *v
 }
 
+func StringMap(m map[string]string) map[string]*string {
+	m2 := make(map[string]*string)
+
+	if m != nil {
+		for k, v := range m {
+			m2[k] = String(v)
+		}
+	}
+
+	return m2
+}
+
+func StringMapValue(m map[string]*string) map[string]string {
+	m2 := make(map[string]string)
+
+	if m != nil {
+		for k, v := range m {
+			m2[k] = StringValue(v)
+		}
+	}
+
+	return m2
+}
+
 func DebugPrint(o interface{}) string {
 	if o == nil {
 		return "<nil>"

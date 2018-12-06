@@ -3,6 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "go_default_library",
     srcs = [
+        "azsfs.go",
         "context.go",
         "fs.go",
         "gsfs.go",
@@ -24,6 +25,9 @@ go_library(
     deps = [
         "//pkg/try:go_default_library",
         "//util/pkg/hashing:go_default_library",
+        "//vendor/github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2018-02-01/storage:go_default_library",
+        "//vendor/github.com/Azure/azure-storage-blob-go/2016-05-31/azblob:go_default_library",
+        "//vendor/github.com/Azure/go-autorest/autorest/azure/auth:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws/awserr:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws/credentials:go_default_library",
@@ -53,6 +57,7 @@ go_library(
 go_test(
     name = "go_default_test",
     srcs = [
+        "azsfs_test.go",
         "s3context_test.go",
         "s3fs_test.go",
     ],

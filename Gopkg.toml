@@ -241,11 +241,10 @@ required = [
   revision = "19f72df4d05d31cbe1c56bfc8045c96babff6c7e"
 [[override]]
   name = "github.com/Azure/go-autorest"
-  revision = "1ff28809256a84bb6966640ff3d0371af82ccba4"
+  version = "10.14.0"
 [[override]]
   name = "github.com/Azure/azure-sdk-for-go"
   version = "19.1.0"
-
 [[override]]
   name = "github.com/Azure/azure-storage-blob-go"
   version = "0.1.4"
