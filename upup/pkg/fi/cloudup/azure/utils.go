@@ -28,3 +28,10 @@ func IsNotFound(err error) bool {
 
 	return apiErr.Response.StatusCode == 404
 }
+
+// SafeObjectName returns the object name and cluster name escaped for Azure
+func SafeObjectName(name string, clusterName string) string {
+	azureName := name + "-" + clusterName
+
+	return azureName
+}

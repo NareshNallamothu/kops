@@ -13,12 +13,11 @@ type Disk struct {
 	Name      *string
 	Lifecycle *fi.Lifecycle
 
-	ResourceGroup *string
-	Location      *string
-	VolumeType    *string
-	SizeGB        *int32
-	Zone          *string
-	Tags          map[string]string
+	Location   *string
+	VolumeType *string
+	SizeGB     *int32
+	Zone       *string
+	Tags       map[string]string
 }
 
 var _ fi.CompareWithID = &Disk{}
@@ -28,20 +27,14 @@ func (e *Disk) CompareWithID() *string {
 }
 
 func (e *Disk) GetDependencies(tasks map[string]fi.Task) []fi.Task {
-	var deps []fi.Task
-	for _, task := range tasks {
-		if _, ok := task.(*ResourceGroup); ok {
-			deps = append(deps, task)
-		}
-	}
-	return deps
+	return GetResourceGroupDependency(tasks)
 }
 
 func (e *Disk) Find(c *fi.Context) (*Disk, error) {
 	cloud := c.Cloud.(azure.AzureCloud)
 	ctx := context.Background()
 
-	r, err := cloud.Disk().Get(ctx, *e.ResourceGroup, *e.Name)
+	r, err := cloud.Disk().Get(ctx, cloud.ResourceGroupName(), *e.Name)
 	if err != nil {
 		if azure.IsNotFound(err) {
 			return nil, nil
@@ -50,14 +43,12 @@ func (e *Disk) Find(c *fi.Context) (*Disk, error) {
 	}
 
 	actual := &Disk{
-		Name:          r.Name,
-		ResourceGroup: e.ResourceGroup,
-		Location:      r.Location,
-		SizeGB:        r.DiskProperties.DiskSizeGB,
-		Tags:          fi.StringMapValue(r.Tags),
+		Name:      r.Name,
+		Lifecycle: e.Lifecycle,
+		Location:  r.Location,
+		SizeGB:    r.DiskProperties.DiskSizeGB,
+		Tags:      fi.StringMapValue(r.Tags),
 	}
-
-	actual.Lifecycle = e.Lifecycle
 
 	return actual, nil
 }
@@ -87,7 +78,7 @@ func (_ *Disk) RenderAzure(t *azure.AzureAPITarget, a, e, changes *Disk) error {
 
 	future, err := cloud.Disk().CreateOrUpdate(
 		ctx,
-		*e.ResourceGroup,
+		cloud.ResourceGroupName(),
 		*e.Name,
 		disks.Disk{
 			Location: e.Location,

@@ -266,13 +266,12 @@ func (b *MasterVolumeBuilder) addAzureVolume(c *fi.ModelBuilderContext, name str
 	tags[azure.TagNameRolePrefix+"master"] = "1"
 
 	t := &azuretasks.Disk{
-		Name:          s(name),
-		Lifecycle:     b.Lifecycle,
-		ResourceGroup: s(b.Cluster.Spec.ResourceGroup),
-		Location:      s(zone),
-		VolumeType:    s(volumeType),
-		SizeGB:        i32(volumeSize),
-		Tags:          tags,
+		Name:       s(name),
+		Lifecycle:  b.Lifecycle,
+		Location:   s(zone),
+		VolumeType: s(volumeType),
+		SizeGB:     i32(volumeSize),
+		Tags:       tags,
 	}
 
 	c.AddTask(t)

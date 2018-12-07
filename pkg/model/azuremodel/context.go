@@ -16,8 +16,16 @@ limitations under the License.
 
 package azuremodel
 
-import "k8s.io/kops/pkg/model"
+import (
+	"k8s.io/kops/pkg/model"
+	"k8s.io/kops/upup/pkg/fi/cloudup/azure"
+)
 
 type AzureModelContext struct {
 	*model.KopsModelContext
+}
+
+// SafeObjectName returns the object name and cluster name escaped for Azure
+func (c *AzureModelContext) SafeObjectName(name string) string {
+	return azure.SafeObjectName(name, c.Cluster.ObjectMeta.Name)
 }

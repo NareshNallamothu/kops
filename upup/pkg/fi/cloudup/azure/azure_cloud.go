@@ -41,6 +41,7 @@ type AzureCloud interface {
 	Compute() *compute.VirtualMachinesClient
 	Storage() *storage.AccountsClient
 	Disk() *disks.DisksClient
+	AvailabilitySet() *compute.AvailabilitySetsClient
 
 	Region() string
 	ResourceGroupName() string
@@ -50,10 +51,11 @@ type AzureCloud interface {
 }
 
 type azureCloudImplementation struct {
-	resourceGroup *resources.GroupsClient
-	compute       *compute.VirtualMachinesClient
-	storage       *storage.AccountsClient
-	disk          *disks.DisksClient
+	resourceGroup   *resources.GroupsClient
+	compute         *compute.VirtualMachinesClient
+	storage         *storage.AccountsClient
+	disk            *disks.DisksClient
+	availabilitySet *compute.AvailabilitySetsClient
 
 	region            string
 	resourceGroupName string
@@ -77,6 +79,7 @@ func NewAzureCloud(region string, resourceGroupName string, tags map[string]stri
 	computeClient := compute.NewVirtualMachinesClient(subscriptionID)
 	storageClient := storage.NewAccountsClient(subscriptionID)
 	disksClient := disks.NewDisksClient(subscriptionID)
+	availabilitySet := compute.NewAvailabilitySetsClient(subscriptionID)
 
 	authorizer, err := auth.NewAuthorizerFromEnvironment()
 	if err != nil {
@@ -87,11 +90,13 @@ func NewAzureCloud(region string, resourceGroupName string, tags map[string]stri
 	computeClient.Authorizer = authorizer
 	storageClient.Authorizer = authorizer
 	disksClient.Authorizer = authorizer
+	availabilitySet.Authorizer = authorizer
 
 	c.resourceGroup = &resourceGroupClient
 	c.compute = &computeClient
 	c.storage = &storageClient
 	c.disk = &disksClient
+	c.availabilitySet = &availabilitySet
 
 	return c, nil
 }
@@ -114,6 +119,11 @@ func (c *azureCloudImplementation) Storage() *storage.AccountsClient {
 // Disk returns private struct element disk.
 func (c *azureCloudImplementation) Disk() *disks.DisksClient {
 	return c.disk
+}
+
+// AvailabilitySet returns private struct element availabilitySet.
+func (c *azureCloudImplementation) AvailabilitySet() *compute.AvailabilitySetsClient {
+	return c.availabilitySet
 }
 
 func (c *azureCloudImplementation) ProviderID() kops.CloudProviderID {

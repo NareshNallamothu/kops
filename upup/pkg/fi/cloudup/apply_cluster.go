@@ -769,8 +769,15 @@ func (c *ApplyClusterCmd) Run() error {
 			})
 		}
 	case kops.CloudProviderAzure:
-		// TODO: BP Implement
-		glog.Info("Autoscaling Group for Azure not implemented yet")
+		azureModelContext := &azuremodel.AzureModelContext{
+			KopsModelContext: modelContext,
+		}
+
+		l.Builders = append(l.Builders, &azuremodel.AutoscalingGroupModelBuilder{
+			AzureModelContext: azureModelContext,
+			BootstrapScript:   bootstrapScriptBuilder,
+			Lifecycle:         &clusterLifecycle,
+		})
 	case kops.CloudProviderDO:
 		doModelContext := &domodel.DOModelContext{
 			KopsModelContext: modelContext,
